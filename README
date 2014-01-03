@@ -225,7 +225,7 @@ for each material lighting type, for instance. Scene files have to be created
 by hand in a text editor. The API is not yet suitable for external use. Various
 naming and calling conventions all over the place are questionable. Performance
 is almost certainly much less than it could be, even given the present state of
-Rakudo.  Repeating from above, all sorts of input validation and error checking
+Rakudo. Repeating from above, all sorts of input validation and error checking
 is missing. Documentation is lacking. The web page and whole site are
 uninspiring and a bit internally neglected, considering I advertise myself as a
 web developer.
