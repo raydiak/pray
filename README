@@ -234,5 +234,19 @@ web developer.
 CONTACT
 
 http://cyberuniverses.com/pray/
-https://github.com/raydiak/pray
+http://github.com/raydiak/pray
 raydiak@cyberuniverses.com
+
+
+
+CREDITS
+
+Perl 6 and its implementations are the tireless effort of many wonderful people
+around the world.
+http://perl6.org/
+http://rakudo.org/
+
+The scene loading code is forked from http://github.com/tadzik/JSON-Unmarshal
+
+Parts of the matrix code are or were forked from or inspired by
+http://github.com/colomon/Math-Vector
