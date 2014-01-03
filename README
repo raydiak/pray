@@ -62,44 +62,45 @@ before a decimal ("0.5", not ".5"), and single quotes ("'") and trailing commas
 
 The outermost block of the scene file represents the scene itself, and is an
 object with keys "camera", "objects", and "lights". See the included examples
-for details. Wherever possible, sane defaults are used.
+for details. Wherever possible, sane defaults are used. The structure looks
+roughly like this:
 
-scene						the top-level block of the file
-	camera					the view into the scene
-		position			view point
-		object				view direction (towards point)
-		roll				rotation around axis of viewing direction
-		fov					field of view
-		exposure			scale of color values
-	lights					list of lights in the scene
-		position			light placement
-		color				light color
-		intensity			brightness
-	objects					list of objects in the scene
-		geometry			the physical shape of the object
-			primitive		cube, cylinder, cone, or sphere
-			position		placement
-			scale			size
-			rotate			orientation
-			csg				list of csg operations and geometries
-		material			appearance of the object
-			ambient			flat constant lighting
-				color
-				intensity
-			diffuse			smooth shaded lighting per light
-				color
-				intensity
-			specular		"shiny spot" per light
-				color
-				intensity
-				sharpness	how sharp or soft the highlight is
-			reflective		visible reflection of other objects
-				color
-				intensity
-			transparent		light passing through the object
-				color
-				intensity	how transparent the object is (fades other colors)
-				refraction	whether and how much this object bends light
+scene                       the top-level block of the file
+    camera                  the view into the scene
+        position            view point
+        object              view direction (towards point)
+        roll                rotation around axis of viewing direction
+        fov                 field of view
+        exposure            scale of color values
+    lights                  list of lights in the scene
+        position            light placement
+        color               light color
+        intensity           brightness
+    objects                 list of objects in the scene
+        geometry            the physical shape of the object
+            primitive       cube, cylinder, cone, or sphere
+            position        placement
+            scale           size
+            rotate          orientation
+            csg             list of csg operations and geometries
+        material            appearance of the object
+            ambient         flat constant lighting
+                color
+                intensity
+            diffuse         smooth shaded lighting per light
+                color
+                intensity
+            specular        "shiny spot" per light
+                color
+                intensity
+                sharpness   how sharp or soft the highlight is
+            reflective      visible reflection of other objects
+                color
+                intensity
+            transparent     light passing through the object
+                color
+                intensity   how transparent the object is (fades other colors)
+                refraction  whether and how much this object bends light
 
 The coordinate system uses Y for depth and Z for height, and is left-handed
 (if +X is right and +Z is up, +Y is forward). Except for the camera, positions
