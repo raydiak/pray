@@ -194,7 +194,7 @@ method ray_intersection_csg_deintersect (
 
 	# A - B
 	@return = self.ray_intersection_csg_subtract(
-		$ray, $obj, @return is copy, :$segment, :$inside,
+		$ray, $obj, @return, :$segment, :$inside,
 	);
 
 	# +
