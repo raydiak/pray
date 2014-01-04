@@ -60,8 +60,8 @@ method ray_intersection (
 			);
 			next unless @intersect;
 			my $u = [min] @intersect.map: {$_[2]};
+			next unless !@return || @return[2] > $u;
 			my $i = (^@intersect).first: { @intersect[$_][2] == $u };
-			next unless !@return || @return[2] > @intersect[$i][2];
 			@return = @intersect[$i].list, $obj;
 		}
 	}
