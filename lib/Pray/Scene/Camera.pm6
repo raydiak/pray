@@ -2,7 +2,7 @@ class Pray::Scene::Camera;
 
 use Pray::Geometry::Vector3D;
 
-has Pray::Geometry::Vector3D $.position = v3d(3,-7,2);
+has Pray::Geometry::Vector3D $.position = v3d(3,-7,3);
 has Pray::Geometry::Vector3D $.object = v3d(0,0,0);
 has Real $.roll = 0;
 has Real $.roll_radians = self.roll * pi / 180;
