@@ -82,9 +82,11 @@ multi submethod new (Str :$primitive!, |args) {
 method ray_intersection (
 	Pray::Geometry::Ray $orig_ray,
 	:$segment = False,
-	Bool :$inside = False
+	Bool :$inside = False,
+	:$csg = True,
+	Bool :$transform is copy = True,
 ) {
-	my $transform = !!( $!position || $!scale || $!rotate );
+	$transform &&= ?( $!position || $!scale || $!rotate );
 	my $ray = $orig_ray;
 	
 	# transform ray
@@ -103,42 +105,48 @@ method ray_intersection (
 	};
 
 	# CSG
-	for @!csg_obj -> $_, $obj {
-		when any <add union or> {
-			@return = self.ray_intersection_csg_add(
-				$ray, $obj, @return, segment => $segment, inside => $inside
-			)
+	if $csg && @!csg {
+		for @!csg_obj -> $_, $obj {
+			last if $obj === $csg;
+			
+			when any <add union or> {
+				@return = self.ray_intersection_csg_add(
+					$ray, $obj, @return, segment => $segment, inside => $inside
+				)
+			}
+			
+			when any <subtract not andnot> {
+				@return = self.ray_intersection_csg_subtract(
+					$ray, $obj, @return, segment => $segment, inside => $inside
+				)
+			}
+			
+			when any <intersect intersection and> {
+				@return = self.ray_intersection_csg_intersect(
+					$ray, $obj, @return, segment => $segment, inside => $inside
+				)
+			}
+			
+			when any <deintersect difference xor> {
+				@return = self.ray_intersection_csg_deintersect(
+					$ray, $obj, @return, segment => $segment, inside => $inside
+				)
+			}
+			
+			default { die qq[Unrecognized CSG operation "$_" in scene] }
 		}
-		
-		when any <subtract not andnot> {
-			@return = self.ray_intersection_csg_subtract(
-				$ray, $obj, @return, segment => $segment, inside => $inside
-			)
-		}
-		
-		when any <intersect intersection and> {
-			@return = self.ray_intersection_csg_intersect(
-				$ray, $obj, @return, segment => $segment, inside => $inside
-			)
-		}
-		
-		when any <deintersect difference xor> {
-			@return = self.ray_intersection_csg_deintersect(
-				$ray, $obj, @return, segment => $segment, inside => $inside
-			)
-		}
-		
-		default { die qq[Unrecognized CSG operation "$_" in scene] }
 	}
 
 	# transform results
-	if $transform {
-		for @return <-> $result {
-			$result[0] .= transform($!transform);
+	for @return -> $result {
+		if $transform {
+			$result[0] = $result[0].transform($!transform);
 			$result[1] = $result[1].transform($!transform_norm).normalize;
-			$result[2] = $result[0].subtract($orig_ray.position).length /
-				$orig_ray.direction.length;
 		}
+
+		# can remove this from primitives
+		$result[2] = $result[0].subtract($orig_ray.position).length /
+			$orig_ray.direction.length;
 	}
 	
 	return @return;
@@ -147,11 +155,11 @@ method ray_intersection (
 method ray_intersection_csg_add (
 	$ray, $obj, @return is copy, :$segment, :$inside,
 ) {
-	@return .= grep: { !$obj.contains_point($_[0]) };
+	@return .= grep: { !$obj.contains_point($_[0], csg => self) };
 	
 	@return.push(
 		$obj.ray_intersection(
-			$ray, :$segment, :$inside
+			$ray, :$segment, :$inside, :csg(self)
 		).grep: { !self.contains_point($_[0], :csg($obj), :!transform) }
 	);
 
@@ -159,34 +167,35 @@ method ray_intersection_csg_add (
 }
 
 method ray_intersection_csg_subtract (
-	$ray, $obj, @return is copy, :$segment, :$inside,
+	$ray, $obj, @return is copy, :$segment, :$inside, :$transform = True,
 ) {
-	@return .= grep: { !$obj.contains_point($_[0]) };
+	@return .= grep: { !$obj.contains_point($_[0], csg => self, :$transform) };
 	
 	@return.push(
 		$obj.ray_intersection(
-			$ray, :$segment, :inside(!$inside)
-		).grep: { self.contains_point($_[0], :csg($obj), :!transform) }
+			$ray, :$segment, :inside(!$inside), :csg(self), :$transform,
+		).grep: {
+			self.contains_point($_[0], :csg($obj), :transform(!$transform))
+		}
 	);
-
+	
 	return @return;
 }
 
 method ray_intersection_csg_intersect (
 	$ray, $obj, @return is copy, :$segment, :$inside,
 ) {
-	@return .= grep: { $obj.contains_point($_[0]) };
+	@return .= grep: { $obj.contains_point($_[0], csg => self) };
 	
 	@return.push(
 		$obj.ray_intersection(
-			$ray, :$segment, :$inside
+			$ray, :$segment, :$inside, csg => self
 		).grep: { self.contains_point($_[0], :csg($obj), :!transform) }
 	);
 
 	return @return;
 }
 
-# did this one even get tested yet? it's different than the others
 method ray_intersection_csg_deintersect (
 	$ray, $obj, @return is copy, :$segment, :$inside,
 ) {
@@ -202,8 +211,8 @@ method ray_intersection_csg_deintersect (
 		# B - A
 		$obj.ray_intersection_csg_subtract(
 			$ray, self,
-			$obj.ray_intersection($ray, :$segment, :$inside),
-			:$segment, :$inside
+			$obj.ray_intersection($ray, :$segment, :$inside, :csg(self)),
+			:$segment, :$inside, :!transform,
 		)
 	);
 
