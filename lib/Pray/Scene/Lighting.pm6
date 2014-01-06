@@ -102,7 +102,7 @@ class Pray::Scene::Transparency is Pray::Scene::Lighting {
 		my $ri_1 = $ambient_ri;
 
 		# refractive index 2 - material ray is passing to
-		my $ri_2 = $!refraction // $ambient_ri;
+		my $ri_2 = $!refraction;
 
 		# get index of container if we're leaving one
 		my $ri_i = 0;
@@ -128,7 +128,9 @@ class Pray::Scene::Transparency is Pray::Scene::Lighting {
 		}
 
 		# ratio of refractive indices
-		my $ratio = $ri_1 / $ri_2;
+		my $ratio =
+			($ri_1 // $ambient_ri) /
+			($ri_2 // $ambient_ri);
 
 		# refracted ray direction
 		my $refract_dir;
