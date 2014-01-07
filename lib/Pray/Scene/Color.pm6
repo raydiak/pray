@@ -76,3 +76,4 @@ method is_black () { .r & .g & .b <= 0 given self }
 
 method is_white () { .r & .g & .b >= 1 given self }
 
+method brightness () { ($!r + $!g + $!b) / 3 }
