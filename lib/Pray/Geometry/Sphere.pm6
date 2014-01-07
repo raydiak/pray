@@ -12,8 +12,7 @@ method _contains_point (Pray::Geometry::Vector3D $point) {
 method _ray_intersection (
 	Pray::Geometry::Ray $ray
 ) {
-	my ($ray_pos, $ray_dir) =
-		.position.clone, .direction.clone given $ray;
+	my ($ray_pos, $ray_dir) = .position, .direction given $ray;
 
 	my $a = $ray_dir.length_sqr;
 	my $b = $ray_dir.dot( $ray_pos ) * 2;
