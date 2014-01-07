@@ -144,9 +144,10 @@ method ray_intersection (
 			$result[1] = $result[1].transform($!transform_norm).normalize;
 		}
 
-		# can remove this from primitives
+		# distance is optional in return from primitives
 		$result[2] = $result[0].subtract($orig_ray.position).length /
-			$orig_ray.direction.length;
+			$orig_ray.direction.length
+			unless !$transform && $result[2].defined;
 	}
 	
 	return @return;
