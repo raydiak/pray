@@ -2,36 +2,39 @@ class Pray::Output;
 
 use Pray::Scene::Color;
 
-has Str $.filename;
 has Int $.width;
 has Int $.height;
-has IO::Handle $.filehandle;
+has @!data = [Any xx $!width] xx $!height;
 
-method new ($filename, $width, $height) {
+method set (Int $x, Int $y, $value) {
+	@!data[$y][$x] = $value;
+}
+
+method color_ppm (Pray::Scene::Color $value) {
+	sprintf(
+		'%3d %3d %3d',
+		$value.r*255,
+		$value.g*255,
+		$value.b*255
+	)
+}
+
+method write_ppm ($filename) {
 	my $fh = open($filename, :w);
-	my $self = self.bless(
-		filename => $filename,
-		filehandle => $fh,
-		width => $width,
-		height => $height
-	);
-	$fh.print("P3\n$width $height\n255\n");
-	return $self;
-}
-
-method set_next (Pray::Scene::Color $color) {
-	my $color_str = sprintf(
-		'%3d %3d %3d ',
-		$color.r*255,
-		$color.g*255,
-		$color.b*255
-	);
-	$.filehandle.print($color_str);
-	return;
-}
-
-method write () {
-	$.filehandle.close();
+	$fh.print("P3\n$!width $!height\n255");
+	
+	for 0..$!height-1 -> $y {
+		my $line = "\n";
+		
+		for 0..$!width-1 -> $x {
+			$line ~= ' ' if $x;
+			$line ~= self.color_ppm( @!data[$y][$x] );
+		}
+		
+		$fh.print($line);
+	}
+	
+	$fh.close;
 	return;
 }
 

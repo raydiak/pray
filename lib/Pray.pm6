@@ -31,7 +31,7 @@ our sub render (
 	}
 	
 	my $scene = Pray::Scene.load($scene_file);
-	my $ppm = Pray::Output.new($out_file, $width, $height);
+	my $out = Pray::Output.new(:$width, :$height);
 
 	# terminal output stuff...should tuck this ugliness away in its own routines or something - and consider that this won't be easily adapted to concurrency
 	my $v_cols = 0;
@@ -87,7 +87,7 @@ our sub render (
 			$*ERR.print( preview_color($color, $preview_chars) )
 				if $preview && !$quiet_line && !($x % $preview_reduce_x);
 
-			$ppm.set_next($color);
+			$out.set($x, $y, $color);
 		}
 
 		$*ERR.print('│') if $preview && !$quiet_line;
@@ -104,7 +104,7 @@ our sub render (
 		'┘'
 	) if $preview;
 
-	$ppm.write;
+	$out.write_ppm($out_file);
 
 	unless $quiet {
 		my $pixels = $width * $height;
