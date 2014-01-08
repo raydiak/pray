@@ -12,7 +12,7 @@ sub MAIN (
 	Int :$width,
 	Int :$height,
 	Bool :$quiet = False,
-	Bool :$verbose = False,
+	#Bool :$verbose = False,
 	Bool :$preview = !$quiet,
 ) {
 	$image //= 
@@ -26,7 +26,7 @@ sub MAIN (
 		$width,
 		$height,
 		:$quiet,
-		:$verbose,
+		#:$verbose,
 		:$preview,
 	);
 }
