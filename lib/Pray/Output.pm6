@@ -10,6 +10,10 @@ method set (Int $x, Int $y, $value) {
 	@!data[$y][$x] = $value;
 }
 
+method get (Int $x, Int $y) {
+	@!data[$y][$x]
+}
+
 method color_ppm (Pray::Scene::Color $value) {
 	sprintf(
 		'%3d %3d %3d',
@@ -28,7 +32,7 @@ method write_ppm ($filename) {
 		
 		for 0..$!width-1 -> $x {
 			$line ~= ' ' if $x;
-			$line ~= self.color_ppm( @!data[$y][$x] );
+			$line ~= self.color_ppm( self.get($x, $y) );
 		}
 		
 		$fh.print($line);
