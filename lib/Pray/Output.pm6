@@ -1,4 +1,4 @@
-class Pray::Output::PPM;
+class Pray::Output;
 
 use Pray::Scene::Color;
 

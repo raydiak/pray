@@ -2,7 +2,7 @@ module Pray;
 
 use Pray::Scene;
 use Pray::Scene::Color;
-use Pray::Output::PPM;
+use Pray::Output;
 
 # in the interest of simplicity, the rendering loop currently resides here with preview and file IO written into it directly - this is more or less the "front end" for the moment
 # a more generic rendering loop should be implemented in Scene, and this should be refactored with appropriate separation of concerns and future concurrency in mind
@@ -31,7 +31,7 @@ our sub render (
 	}
 	
 	my $scene = Pray::Scene.load($scene_file);
-	my $ppm = Pray::Output::PPM.new($out_file, $width, $height);
+	my $ppm = Pray::Output.new($out_file, $width, $height);
 
 	# terminal output stuff...should tuck this ugliness away in its own routines or something - and consider that this won't be easily adapted to concurrency
 	my $v_cols = 0;
