@@ -17,6 +17,14 @@ method load (Str $file) {
 	Pray::Input::JSON::load_file($file, self.WHAT);
 }
 
+method screen_coord_color( $x, $y, $width, $height ) {
+	$!camera.screen_coord_color(
+		$x, $y,
+		$width, $height,
+		self
+	).clip
+}
+
 method ray_color (
 	Pray::Geometry::Ray $ray,
 	:@containers,

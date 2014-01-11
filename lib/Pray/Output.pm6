@@ -79,10 +79,7 @@ class Pray::Output::Color {
 		color_ppm($!value) !!
 		'';
 	
-	has $.preview =
-		$!value.defined ??
-		color_preview($!value, 1) !!
-		'*';
+	has $.preview = color_preview($!value);
 }
 
 class Pray::Output {
