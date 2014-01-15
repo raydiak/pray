@@ -1,7 +1,5 @@
 use v6;
 
-use Pray::Scene::Color;
-
 sub seconds_to_time ($seconds is copy, int :$parts is copy = 2) {
 	constant @time_units = (
 		[	86400,	'day',			'dy'	],
@@ -36,91 +34,183 @@ sub seconds_to_time ($seconds is copy, int :$parts is copy = 2) {
 	return $return;
 }
 
-sub color_ppm (Pray::Scene::Color $value) {
-	sprintf(
-		'%3d %3d %3d',
-		$value.r*255,
-		$value.g*255,
-		$value.b*255
-	)
+sub color_ppm ($r, $g, $b) {
+	$r.defined && $g.defined && $b.defined ?? 
+		sprintf(
+			'%3d %3d %3d',
+			$r*255,
+			$g*255,
+			$b*255
+		) !!
+		'  0   0   0'
 }
 
-sub color_preview (Pray::Scene::Color $color, $count = 1) {
-	return '*' x $count unless $color;
+sub color_preview ($r, $g, $b) {
+	return '*' unless $r.defined && $g.defined && $b.defined;
 	constant @chars = ' ', < ░ ▒ ▓ █ >;
 	constant $shades = @chars - 1;
-	my $shade = ( ($color.r + $color.g + $color.b) / 3 );
-	my $return = '';
+	my $shade = ( ($r + $g + $b) / 3 );
 
-	for ^$count {
-		my $char;
-		given $shade {
-			when $_ >= 1 { $char = @chars[*-1] }
-			when $_ <= 0 { $char = @chars[0] }
-			default {
-				my $i = $shade * $shades;
-				$i += rand - .5; # dithering
-				$i .= Int;
-				$i = [max] 1, [min] $shades, $i+1;
-				$char = @chars[$i];
-			}
+	my $char;
+	given $shade {
+		when $_ >= 1 { $char = @chars[*-1] }
+		when $_ <= 0 { $char = @chars[0] }
+		default {
+			my $i = $shade * $shades;
+			$i += rand - .5; # dithering
+			$i .= Int;
+			$i = [max] 1, [min] $shades, $i+1;
+			$char = @chars[$i];
 		}
-		$return ~= $char;
 	}
 	
-	return $return;
-}
-
-class Pray::Output::Color {
-	has $.value;
-	
-	has $.ppm =
-		$!value.defined ??
-		color_ppm($!value) !!
-		'';
-	
-	has $.preview = color_preview($!value);
+	return $char;
 }
 
 class Pray::Output {
 	has Int $.width;
 	has Int $.height;
-	
-	# this could be what is adding all the new startup time
-		# make preview method check for undefinedness and remove this
-	has @!data = [] xx $!height;
-	
-	has Int $!incomplete = $!width * $!height;
+	has Int $!pixels = $!width * $!height;
 
-	method set (Int $x, Int $y, $value, Bool :$preview = True) {
-		if self.get($x, $y) {
-			$!incomplete++ unless $value;
-		} else {
-			$!incomplete-- if $value;
+	my $val_undef = '*' x 16 ~ "\n";
+	sub val_fmt ($v?) { $v.defined ?? sprintf("% 16.12g\n", $v) !! $val_undef }
+	
+	sub _build_values (Int $w, Int $h) {
+		my $val = val_fmt();
+		my $return = [$val x $w * 3 xx $h];
+		return $return;
+	}
+	
+	has $!values = _build_values($!width, $!height);
+	
+	has Int $!val_len = val_fmt().chars;
+	has Int $!pix_len = 3 * $!val_len;
+	
+	has Int $.incomplete is rw = $!pixels;
+
+	has Int $.preview_width = [min] $!width, 80;
+	has Real $!preview_reduce = $!width / $!preview_width;
+	has Int $.preview_height = Int($!height / $!preview_reduce / 2);
+	has Str $.preview is rw = (
+		('*' x $!preview_width)
+		xx $!preview_height
+	).join("\n");
+
+	method preview_coord ($x, $y) {
+		Int($x / $!preview_reduce),
+		Int($y / $!preview_reduce / 2)
+	}
+	
+	method preview_index ($x is copy, $y is copy) {
+		my ($x_c, $y_c) = self.preview_coord($x, $y);
+		return $y_c * ($!preview_width+1) + $x_c;
+	}
+
+	method update_preview ($x, $y, :@color is copy) {
+		# this was pretty, but too slow, especially all the get()s
+		unless @color {
+			my @preview_coord = self.preview_coord($x, $y);
+			
+			my $x_start = @preview_coord[0] * $!preview_reduce;
+			my $x_stop = [min] $!width - 1, $x_start + $!preview_reduce;
+			
+			my $x_start_c = $x_start.Int;
+			my $x_stop_c = $x_stop.Int;
+			$x_stop_c++ if $x_stop_c != $x_stop && $x_stop_c + 1 <= $!height - 1;
+			
+			my $x_start_shade = 1 - ($x_start - $x_start_c) / $!preview_reduce;
+			my $x_stop_shade = 1 - ($x_stop_c - $x_stop) / $!preview_reduce;
+
+			my $y_start = @preview_coord[1] * $!preview_reduce * 2;
+			my $y_stop = [min] $!height - 1, $y_start + $!preview_reduce * 2;
+
+			my $y_start_c = $y_start.Int;
+			my $y_stop_c = $y_stop.Int;
+			$y_stop_c++ if $y_stop_c != $y_stop && $y_stop_c + 1 <= $!height - 1;
+			
+			my $y_start_shade = 1 - ($y_start - $y_start_c) / $!preview_reduce / 2;
+			my $y_stop_shade = 1 - ($y_stop_c - $y_stop) / $!preview_reduce / 2;
+			
+			my $colors = 0;
+			for $y_start_c..$y_stop_c -> $y_c {
+				for $x_start_c..$x_stop_c -> $x_c {
+					my ($r, $g, $b) = self.get($x_c, $y_c);
+					next unless $r.defined && $g.defined && $b.defined;
+					#return unless $r.defined && $g.defined && $b.defined;
+					my $s = 1;
+					$s *= $x_start_shade if $x_c == $x_start_c;
+					$s *= $x_stop_shade if $x_c == $x_stop_c;
+					$s *= $y_start_shade if $y_c == $y_start_c;
+					$s *= $y_stop_shade if $y_c == $y_stop_c;
+					$_ *= $s for $r, $g, $b;
+					if @color {
+						@color =
+							@color[0] + $r,
+							@color[1] + $g,
+							@color[2] + $b;
+					} else {
+						@color = $r, $g, $b;
+					}
+					$colors += $s;
+				}
+			}
+			if $colors && $colors != 1 {
+				$_ /= $colors for @color;
+			}
 		}
-		@!data[$y][$x] = Pray::Output::Color.new(:$value);
-		self.progress( :$preview, :force(!$!incomplete) ) if $preview;
+
+		my $char = @color ?? color_preview(|@color) !! '*';
+		my $i = self.preview_index($x, $y);
+		substr-rw($!preview, $i, 1) = $char;
 		return;
 	}
 
+	method set (
+		Int $x, Int $y,
+		Real $r, Real $g, Real $b,
+		Bool :$preview = False,
+	) {
+		my ($r_v, $g_v, $b_v) = self.get($x, $y);
+		$!incomplete-- unless $r_v.defined || $g_v.defined || $b_v.defined;
+		
+		# how to make this fast...???...
+			# the answer was to split the huge string up
+			# into an array of smaller strings
+		substr-rw($!values[$y], $x*$!pix_len, $!pix_len) =
+			($r, $g, $b)».map({ val_fmt $_ }).join('');
+		
+		if $preview {
+			self.update_preview($x, $y, :color($r, $g, $b));
+			self.progress( :$preview, :force(!$!incomplete) );
+		}
+		
+		return;
+	}
+	
 	method get (Int $x, Int $y) {
-		my $data = @!data[$y][$x];
-		
-		return $data.value if $data.defined;
+		my @color;
 
-		return;
+		for 0..2 {
+			my $val = substr(
+				$!values[$y],
+				$x * $!pix_len + $_ * $!val_len, $!val_len
+			);
+			
+			if $val eq $val_undef {
+				$val = Real;
+			} else {
+				$val = +$val;
+			}
+			push @color, $val;
+		}
+		
+		return |@color;
 	}
 
-	method get_preview (Int $x, Int $y) {
-		my $data = @!data[$y][$x];
-		
-		return $data.preview if $data.defined;
+	method ppm_value (Int $x, Int $y) {
+		my ($r, $g, $b) = self.get($x, $y);
 
-		return '*';
-	}
-
-	method get_ppm (Int $x, Int $y) {
-		@!data[$y][$x].ppm
+		return color_ppm($r, $g, $b);
 	}
 
 	method write_ppm ($filename) {
@@ -132,7 +222,7 @@ class Pray::Output {
 			
 			for 0..$!width-1 -> $x {
 				$line ~= ' ' if $x;
-				$line ~= self.get_ppm($x, $y);
+				$line ~= self.ppm_value($x, $y);
 			}
 			
 			$fh.print($line);
@@ -142,75 +232,32 @@ class Pray::Output {
 		return;
 	}
 
-	# this is still very messy, but at least the mess is more encapsulated now
 	method progress (
 		Bool :$preview = True,
 		Bool :$force = False,
 	) {
-		# did I mention very messy?
-		# these things should be moved into a sane set of private properties
-		state $preview_chars = 2;
-		state $preview_reduce_x = 1;
-		state $preview_reduce_y = 1;
-		state $p_cols_max = 78;
-		state $p_cols = 0;
-		state $total = $!width * $!height;
-
-		if $p_cols == 0 {
-			$p_cols = $!width * 2;
-			while $p_cols > $p_cols_max {
-				if $preview_chars == 2 {
-					$preview_chars = 1;
-					$preview_reduce_y = 2;
-				} else {
-					$preview_reduce_x = $preview_reduce_x + 1;
-					$preview_reduce_y = $preview_reduce_x * 2;
-				}
-				$p_cols = ($!width div $preview_reduce_x) * $preview_chars;
-				$p_cols = $p_cols + $preview_chars
-					if $!width % $preview_reduce_x;
-			}
-		}
-		
 		my $this_time = now;
-		state $first_time = $this_time;
+		state $first_time;
+		if !$first_time.defined {
+			$first_time = 0;
+		} elsif !$first_time {
+			$first_time = $this_time;
+		}
 		state $last_time;
-		state $delay = 2;
+		my $delay = 1;
 		
 		return if !$force && $last_time && ($this_time - $last_time < $delay);
 		$last_time = $this_time;
 		
-		my $complete = $total - $!incomplete;
+		my $complete = $!pixels - $!incomplete;
 		my $total_time = $this_time - $first_time;
 
-		my $out ~= '┌' ~ '─' x $p_cols ~ "┐\n";
+		my $out = $!preview;
 
-		my int $width = $!width;
-		my int $height = $!height;
-		my @data := @!data;
-		my int $x = 0;
-		my int $y = 0;
-		loop ($y = 0; $y < $height; $y = $y + 1) {
-			next if $y % $preview_reduce_y;
-			
-			$out ~= '│';
-			
-			loop ($x = 0; $x < $width; $x = $x + 1) {
-				next if $x % $preview_reduce_x;
-				if @data[$y][$x] -> $_ {
-					$out ~= .preview x $preview_chars;
-				} else {
-					$out ~= '*' x $preview_chars;
-				}
-			}
+		$out ~= "\n" if $!incomplete || $total_time;
 
-			$out ~= "│\n";
-		}
-
-		$out ~= '└' ~ '─' x $p_cols ~ "┘\n";
-
-		if $!incomplete != 0 {
-			$out ~= sprintf('%3d%%', $complete * 100 / $total);
+		if $!incomplete {
+			$out ~= sprintf('%3d%%', $complete * 100 / $!pixels);
 
 			$out ~= ' | ETA + ' ~
 				seconds_to_time($!incomplete / $complete * $total_time)
@@ -226,14 +273,6 @@ class Pray::Output {
 		
 		shell 'clear';
 		$*ERR.print($out);
-
-		my $run_time = now - $this_time;
-		$delay = $run_time * 10;
-		$delay = 1 if $delay < 1;
-		$delay = 60 if $delay > 60;
-
-		$*ERR.print( sprintf(' (%ds)', $delay) )
-			unless $!incomplete == 0;
 
 		return;
 	}
