@@ -34,17 +34,31 @@ our sub render (
 
 	my $start_time = now;
 
-	my int $count = $width * $height;
-	loop (my int $i = 0; $i < $count; $i = $i + 1) {
-		my @p := next_hilbert_coord($width, $height);
-		my $color = $scene.screen_coord_color(|@p, $width, $height);
-		$out.set(
-			|@p,
-			$color.r, $color.g, $color.b,
-			:$preview
-		);
-	}
+	my $count = $width * $height;
 
+	my $s = Supply.for(^$count);
+
+	my $complete = False;
+	my $t = $s.tap:
+		{
+			my $point = hilbert_coord($width, $height, $_);
+			my $color =
+				$scene.screen_coord_color(|$point, $width, $height);
+			$out.set(
+				|$point,
+				$color.r, $color.g, $color.b,
+				:$preview
+			);
+		},
+		done => {
+			$complete = True;
+			return;
+		};
+
+	until $complete {
+		sleep 1;
+	}
+	
 	# preview leaves cursor at end of last line to avoid scrolling the output
 	$*ERR.say('') if $preview; 
 
@@ -53,7 +67,9 @@ our sub render (
 }
 
 #convert d to (x,y)
-sub next_hilbert_coord ($w, $h) {
+# seeking version to support fast near indexing without memory bloat
+# caching the whole sequence was too slow and memory-intensive
+sub hilbert_coord ($w, $h, $i) {
 	# cache the mappings
 	state %sizes;
 	
@@ -71,17 +87,23 @@ sub next_hilbert_coord ($w, $h) {
 		$size<size> = $hilbert_size;
 		$size<offset> = -1;
 		$size<count> = $w * $h;
+		$size<index> = -1;
 	}
-
+	
 	my $coord;
-	while (
-		(!$coord || $coord[0] >= $w || $coord[1] >= $h ) &&
-		++$size<offset> < $size<count>
-	) {
-		$coord = &hilbert_dist(
-			$size<size>,
-			$size<offset>
-		)
+	while ( my $dir = ($i <=> $size<index>) ) || !$coord {
+		my $o = 0;
+		while (
+			(!$coord || $coord[0] >= $w || $coord[1] >= $h ) &&
+			0 <= ($o += $dir) < $size<size> ** 2 - $size<offset>
+		) {
+			$coord = &hilbert_dist(
+				$size<size>,
+				$size<offset> + $o
+			);
+		}
+		$size<offset> += $o if $o;
+		$size<index> += $dir if $dir;
 	}
 
 	return $coord[0], $coord[1];
