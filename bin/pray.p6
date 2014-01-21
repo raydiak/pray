@@ -2,7 +2,7 @@
 
 use v6;
 
-BEGIN { $*ERR.say('Starting up') }; # BUG: ignores --quiet
+BEGIN { $*ERR.say('Loading') }; # BUG: ignores --quiet
 
 use lib $?FILE.path.absolute.parent.parent.child('lib');
 

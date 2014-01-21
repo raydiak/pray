@@ -36,27 +36,33 @@ our sub render (
 
 	my $count = $width * $height;
 
-	my $part_count = 2;
+	$*ERR.say( 'Segmenting' ) unless $quiet;
+	
+	my $threads = 2;
+	my $sched = ThreadPoolScheduler.new(
+		max_threads => $threads
+	);
+
+	my $range = [min] 256, Int($count / $threads);
 	my @parts;
-	my $range = $count / $part_count;
-	my $avg = 0;
-	until @parts && @parts[*-1][1] >= $count-1 {
+	my $last = $count - 1;
+	my %context;
+	while !@parts || @parts[*-1][1] < $last {
 		my $start = @parts ?? @parts[*-1][1]+1 !! 0;
-		my $this_range = $range.Int;
-		$this_range++ if @parts == $part_count-1 || $avg && $avg < $range;
-		$this_range = [min] $count - $start, $this_range;
-		my $end = $start + $this_range - 1;
-		@parts.push: ($start, $end).item;
-		$avg = ($end + 1) / @parts;
+		my $end = [min] $start + $range - 1, $last;
+		eager hilbert_coord($width, $height, $start, :%context);
+		@parts.push: [ $start, $end, Hash.new(eager %context).item ];
 	}
 	
+	$*ERR.say( 'Rendering' ) unless $quiet;
 	my $channel = Channel.new;
 	
-	for @parts -> $part {
-		$*SCHEDULER.cue: {
+	while @parts {
+		my $part = @parts.shift;
+		$sched.cue: {
 			sink for $part[0]..$part[1] -> $i {
 				my $point = eager hilbert_coord\
-					( $width, $height, $i, :context(state %) );
+					( $width, $height, $i, :context( $part[2] ) );
 				
 				my $color = $scene.screen_coord_color\
 					( $point[0], $point[1], $width, $height );
@@ -99,31 +105,37 @@ sub hilbert_coord ($w, $h, $i, :%context! is rw) {
 		my $hilbert_size = Int($dec_size);
 		$hilbert_size++ if $hilbert_size < $dec_size;
 		$hilbert_size = 2 ** $hilbert_size;
-		%context<size> = $hilbert_size;
-		%context<offset> = 0;
-		%context<count> = $w * $h;
-		%context<index> = 0;
+		%context = (
+			size => $hilbert_size,
+			offset => 0,
+			count => $w * $h,
+			index => 0
+		);
 	}
 	
 	my $dir = +( $i <=> %context<index> );
 	
 	my $coord;
 	until $coord {
-		my $o = %context<offset>;
-		
-		my $test_coord;
-		while (
-			!$test_coord || $test_coord[0] >= $w || $test_coord[1] >= $h
-		) {
-			$o += $dir;
+		my $test_coord = Any;
+		while
+			!$test_coord ||
+			$test_coord[0] >= $w ||
+			$test_coord[1] >= $h
+		{
+			%context<offset> += $dir;
 			
-			die 'Hilbert offset out of range'
-				unless $o >= 0 && $o < %context<size>**2;
+			die "Hilbert offset %context<offset> outside of %context<size>² area\n" ~
+				"i:$i\td:$dir\n" ~
+				"{%context.perl}\n" ~
+				"last tested: {($test_coord // []).perl}"
+				unless
+					%context<offset> >= 0 &&
+					%context<offset> < %context<size> ** 2;
 			
-			$test_coord = eager &hilbert_dist( %context<size>, $o );
+			$test_coord = hilbert_dist( %context<size>, %context<offset> );
 		}
 		
-		%context<offset> = $o;
 		%context<index> += $dir;
 		
 		$coord = $test_coord if %context<index> == $i;

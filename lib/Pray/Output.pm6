@@ -173,6 +173,8 @@ class Pray::Output {
 		my ($r_v, $g_v, $b_v) = self.get($x, $y);
 		my $count = !($r_v.defined || $g_v.defined || $b_v.defined);
 		
+		$!incomplete-- if $count;
+
 		# how to make this fast...???...
 			# the answer was to split the huge string up
 			# into an array of smaller strings
@@ -181,13 +183,9 @@ class Pray::Output {
 		
 		if $preview {
 			self.update_preview($x, $y, :color($r, $g, $b));
-			self.progress( :$preview, force => ( $!incomplete <= 1 && $count ) );
+			self.progress( :$preview, :force( !$!incomplete ) );
 		}
 		
-		# this is last to make it useful for concurrency control:
-			# Thread.yield while $out.incomplete
-		$!incomplete-- if $count;
-
 		return;
 	}
 	
