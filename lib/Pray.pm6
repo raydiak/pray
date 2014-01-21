@@ -36,7 +36,7 @@ our sub render (
 
 	my $count = $width * $height;
 
-	my $part_count = 4;
+	my $part_count = 2;
 	my @parts;
 	my $range = $count / $part_count;
 	my $avg = 0;
@@ -49,25 +49,11 @@ our sub render (
 		@parts.push: ($start, $end).item;
 		$avg = ($end + 1) / @parts;
 	}
-	#die @parts.perl;
 	
-	my $s = Supply.new;
+	my $channel = Channel.new;
 	
-	my $l = Lock.new;
-	$s.tap: -> $msg {
-		my ($point, $color) = @$msg;
-		$l.protect: {
-			$out.set(
-				$point[0], $point[1],
-				$color.r, $color.g, $color.b,
-				:$preview
-			);
-		};
-	};
-
-	my @workers;
 	for @parts -> $part {
-		@workers.push: start {
+		$*SCHEDULER.cue: {
 			sink for $part[0]..$part[1] -> $i {
 				my $point = eager hilbert_coord\
 					( $width, $height, $i, :context(state %) );
@@ -75,14 +61,24 @@ our sub render (
 				my $color = $scene.screen_coord_color\
 					( $point[0], $point[1], $width, $height );
 				
-				$s.more: ($point, $color).item;
+				$channel.send: ($point, $color).item;
 			}
 			# return here causes the thread to die with an error
 				# TODO reduce & report
 		};
 	}
 
-	Thread.yield while $out.incomplete;
+	while $out.incomplete {
+		my $msg = $channel.receive;
+		my ($point, $color) = @$msg;
+		$out.set(
+			$point[0], $point[1],
+			$color.r, $color.g, $color.b,
+			:$preview
+		);
+	};
+
+	$channel.close;
 
 	# preview leaves cursor at end of last line to avoid scrolling the output
 	$*ERR.say('') if $preview; 
