@@ -36,77 +36,104 @@ our sub render (
 
 	my $count = $width * $height;
 
-	my $s = Supply.for(^$count);
-
-	my $complete = False;
-	my $t = $s.tap:
-		{
-			my $point = hilbert_coord($width, $height, $_);
-			my $color =
-				$scene.screen_coord_color(|$point, $width, $height);
+	my $part_count = 4;
+	my @parts;
+	my $range = $count / $part_count;
+	my $avg = 0;
+	until @parts && @parts[*-1][1] >= $count-1 {
+		my $start = @parts ?? @parts[*-1][1]+1 !! 0;
+		my $this_range = $range.Int;
+		$this_range++ if @parts == $part_count-1 || $avg && $avg < $range;
+		$this_range = [min] $count - $start, $this_range;
+		my $end = $start + $this_range - 1;
+		@parts.push: ($start, $end).item;
+		$avg = ($end + 1) / @parts;
+	}
+	#die @parts.perl;
+	
+	my $s = Supply.new;
+	
+	my $l = Lock.new;
+	$s.tap: -> $msg {
+		my ($point, $color) = @$msg;
+		$l.protect: {
 			$out.set(
-				|$point,
+				$point[0], $point[1],
 				$color.r, $color.g, $color.b,
 				:$preview
 			);
-		},
-		done => {
-			$complete = True;
-			return;
 		};
+	};
 
-	until $complete {
-		sleep 1;
+	my @workers;
+	for @parts -> $part {
+		@workers.push: start {
+			sink for $part[0]..$part[1] -> $i {
+				my $point = eager hilbert_coord\
+					( $width, $height, $i, :context(state %) );
+				
+				my $color = $scene.screen_coord_color\
+					( $point[0], $point[1], $width, $height );
+				
+				$s.more: ($point, $color).item;
+			}
+			# return here causes the thread to die with an error
+				# TODO reduce & report
+		};
 	}
-	
+
+	Thread.yield while $out.incomplete;
+
 	# preview leaves cursor at end of last line to avoid scrolling the output
 	$*ERR.say('') if $preview; 
 
-	$*ERR.say("Writing to $out_file") unless :$quiet;
+	$*ERR.say("Writing to $out_file") unless $quiet;
 	$out.write_ppm($out_file);
+	$*ERR.say('Exiting') unless $quiet;
 }
 
 #convert d to (x,y)
 # seeking version to support fast near indexing without memory bloat
 # caching the whole sequence was too slow and memory-intensive
-sub hilbert_coord ($w, $h, $i) {
-	# cache the mappings
-	state %sizes;
-	
-	# key cache on rectangle dimensions
-	my $size_key = "$w $h";
-
-	my $size := %sizes{$size_key};
-
-	unless $size {
+sub hilbert_coord ($w, $h, $i, :%context! is rw) {
+	#say %context.perl if %context;
+	unless %context {
 		my $max = [max] $w, $h;
 		my $dec_size = log($max) / log(2);
 		my $hilbert_size = Int($dec_size);
 		$hilbert_size++ if $hilbert_size < $dec_size;
 		$hilbert_size = 2 ** $hilbert_size;
-		$size<size> = $hilbert_size;
-		$size<offset> = -1;
-		$size<count> = $w * $h;
-		$size<index> = -1;
+		%context<size> = $hilbert_size;
+		%context<offset> = 0;
+		%context<count> = $w * $h;
+		%context<index> = 0;
 	}
 	
+	my $dir = +( $i <=> %context<index> );
+	
 	my $coord;
-	while ( my $dir = ($i <=> $size<index>) ) || !$coord {
-		my $o = 0;
+	until $coord {
+		my $o = %context<offset>;
+		
+		my $test_coord;
 		while (
-			(!$coord || $coord[0] >= $w || $coord[1] >= $h ) &&
-			0 <= ($o += $dir) < $size<size> ** 2 - $size<offset>
+			!$test_coord || $test_coord[0] >= $w || $test_coord[1] >= $h
 		) {
-			$coord = &hilbert_dist(
-				$size<size>,
-				$size<offset> + $o
-			);
+			$o += $dir;
+			
+			die 'Hilbert offset out of range'
+				unless $o >= 0 && $o < %context<size>**2;
+			
+			$test_coord = eager &hilbert_dist( %context<size>, $o );
 		}
-		$size<offset> += $o if $o;
-		$size<index> += $dir if $dir;
+		
+		%context<offset> = $o;
+		%context<index> += $dir;
+		
+		$coord = $test_coord if %context<index> == $i;
 	}
 
-	return $coord[0], $coord[1];
+	return @$coord;
 }
 
 # copied and ported from wikipedia
@@ -126,7 +153,7 @@ sub hilbert_dist ($n, $d) {
 		$y += $s * $ry;
 		$t /= 4;
 	}
-	return [$x, $y];
+	return $x, $y;
 }
  
 # from same source as above
