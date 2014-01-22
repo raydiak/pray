@@ -23,7 +23,7 @@ multi _load ($json, Numeric) {
 }
 
 multi _load ($json, Str) {
-	if $json ~~ Stringy {
+	if $json ~~ Str {
 		return Str($json)
 	}
 }

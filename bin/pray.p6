@@ -2,7 +2,7 @@
 
 use v6;
 
-use lib $?FILE.path.absolute.parent.parent.child('lib');
+use lib "$?FILE.path().directory()/../lib";
 
 use Pray;
 

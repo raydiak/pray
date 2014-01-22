@@ -29,19 +29,19 @@ method _build_transform (
 		my %args = <x y z>.map: { $_ => $!scale."$_"() };
 		my $scale_mat = m3d.scale(|%args);
 		$scale_mat .= invert if $scale_inv;
-		$transform .= multiply( $scale_mat );
+		$transform = $transform.multiply( $scale_mat );
 	}
 	if ($!rotate) {
 		my $rotate = self.rotate_radians;
 		for <z y x> -> $axis {
 			if $rotate."$axis"() -> $angle {
-				$transform .= multiply( m3d.rotate($axis, $angle) );
+				$transform = $transform.multiply( m3d.rotate($axis, $angle) );
 			}
 		}
 	}
 	if $position && $!position {
 		my %args = <x y z>.map: { $_ => $!position."$_"() // 0 };
-		$transform .= multiply( m3d.translate(|%args) );
+		$transform = $transform.multiply( m3d.translate(|%args) );
 	}
 	
 	return $transform;
@@ -70,13 +70,13 @@ method _build_csg_obj () {
 has @.csg;
 has @!csg_obj = self._build_csg_obj;
 
-multi submethod new (Str :$primitive!, |args) {
+multi submethod new (Str :$primitive!, *%_) {
 	my $class_name = "Pray::Geometry::{$primitive.tc}";
 	require ::($class_name);
 	my $class = ::($class_name);
 	die "Unrecognized object primitive '$primitive' in scene"
 		unless $class.isa($?CLASS);
-	$class.new(|args);
+	$class.new(|%_);
 }
 
 method ray_intersection (
@@ -220,7 +220,7 @@ method ray_intersection_csg_deintersect (
 	return @return;
 }
 
-method _ray_intersection (Pray::Geometry::Ray $ray) { return }
+method _ray_intersection { return }
 
 method contains_point (
 	Pray::Geometry::Vector3D $point is copy,
@@ -228,7 +228,7 @@ method contains_point (
 	Bool :$transform = True,
 ) {
 	#transform
-	$point .= transform($!inv_transform) if $transform;
+	$point = $point.transform($!inv_transform) if $transform;
 
 	#calculate
 	my $return = self._contains_point($point);
@@ -253,7 +253,7 @@ method contains_point (
 	return $return;
 }
 
-method _contains_point (Pray::Geometry::Vector3D $point) { return False }
+method _contains_point { return False }
 
 method rotate_radians () {
 	self.rotate.scale(pi/180)

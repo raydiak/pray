@@ -110,10 +110,10 @@ class Pray::Scene::Camera {
 
 			$add = $_<color>.color_scaled.scale($add.brightness) if $_<color>;
 
-			$return .= add($add);
+			$return = $return.add($add);
 		}
 
-		$return .= scale($!exposure);
+		$return = $return.scale($!exposure);
 
 		return $return;
 	}

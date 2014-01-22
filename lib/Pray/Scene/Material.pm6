@@ -31,13 +31,13 @@ method intersection_color (
 			next if $light_color.is_black;
 			
 			# Diffusion
-			$color .= add( $.diffuse.color_shaded(
+			$color = $color.add( $.diffuse.color_shaded(
 					$light_color,
 					cos => $cos_to_light
 			) ) if $.diffuse;
 
 			# Specularity
-			$color .= add( $.specular.color_shaded(
+			$color = $color.add( $.specular.color_shaded(
 					$light_color,
 					$int,
 					$light_dir_norm,
@@ -45,7 +45,7 @@ method intersection_color (
 		}
 
 		# Reflection
-		$color .= add( $.reflective.color_shaded(
+		$color = $color.add( $.reflective.color_shaded(
 			$int,
 			:recurse($recurse-1),
 		) ) if $.reflective && $recurse;

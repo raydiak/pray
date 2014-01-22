@@ -41,7 +41,7 @@ method intersection_color (
 		# light is obstructed by something opaque
 		return black if @obstructions > @filters;
 		
-		$shadow .= scale(.color_scaled) for @filters;
+		$shadow = $shadow.scale(.color_scaled) for @filters;
 	}
 
 	return self.point_color($int.position).scale($shadow);

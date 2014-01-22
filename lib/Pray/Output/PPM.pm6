@@ -5,7 +5,8 @@ use Pray::Scene::Color;
 has Str $.filename;
 has Int $.width;
 has Int $.height;
-has IO::Handle $.filehandle;
+#has IO::Handle $.filehandle;
+has $.filehandle;
 
 method new ($filename, $width, $height) {
 	my $fh = open($filename, :w);

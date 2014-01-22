@@ -61,7 +61,7 @@ our sub render (
 			$p_cols += $preview_chars if $width % $preview_reduce_x;
 		}
 		
-		$*ERR.say(
+		say($*ERR,
 			(' ' x $v_cols) ~ 
 			'┌' ~
 			('─' x $p_cols) ~
@@ -97,7 +97,7 @@ our sub render (
 
 	my $seconds = now - $start_time;
 	
-	$*ERR.say(
+	say($*ERR,
 		(' ' x $v_cols) ~ 
 		'└' ~
 		('─' x $p_cols) ~
