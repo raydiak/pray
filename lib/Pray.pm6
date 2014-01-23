@@ -30,20 +30,23 @@ our sub render (
 	}
 	
 	my $scene = Pray::Scene.load($scene_file);
+
+	$*ERR.say('Initializing') unless $quiet;
+	
 	my $out = Pray::Output.new(:$width, :$height);
 
 	my $start_time = now;
 
 	my $count = $width * $height;
 
-	$*ERR.say( 'Segmenting' ) unless $quiet;
+	$*ERR.say('Segmenting') unless $quiet;
 	
 	my $threads = 2;
 	my $sched = ThreadPoolScheduler.new(
 		max_threads => $threads
 	);
 
-	my $range = [min] 256, Int($count / $threads);
+	my $range = [min] 256, $count div $threads + ?( $count % $threads );
 	my @parts;
 	my $last = $count - 1;
 	my %context;
@@ -54,9 +57,10 @@ our sub render (
 		@parts.push: [ $start, $end, Hash.new(eager %context).item ];
 	}
 	
-	$*ERR.say( 'Rendering' ) unless $quiet;
 	my $channel = Channel.new;
 	
+	$*ERR.say('Rendering') unless $quiet;
+
 	while @parts {
 		my $part = @parts.shift;
 		$sched.cue: {
