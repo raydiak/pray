@@ -182,7 +182,7 @@ class Pray::Output {
 			($r, $g, $b)».map({ val_fmt $_ }).join('');
 		
 		if $preview {
-			self.update_preview($x, $y, :color($r, $g, $b));
+			self.update_preview($x, $y);#, :color($r, $g, $b));
 			self.progress( :$preview, :force( !$!incomplete ) );
 		}
 		

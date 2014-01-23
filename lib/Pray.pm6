@@ -41,12 +41,13 @@ our sub render (
 
 	$*ERR.say('Segmenting') unless $quiet;
 	
-	my $threads = 4;
+	my $threads = 2;
+	my $min_parts = $threads * 2;
 	my $sched = ThreadPoolScheduler.new(
 		max_threads => $threads
 	);
 
-	my $range = [min] 256, $count div $threads + ?( $count % $threads );
+	my $range = [min] 256, $count div $min_parts + ?( $count % $min_parts ), $count;
 	my @parts;
 	my $last = $count - 1;
 	my %context;
