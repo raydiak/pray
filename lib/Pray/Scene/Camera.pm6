@@ -68,7 +68,9 @@ class Pray::Scene::Camera {
 	}
 
 	method containers ($scene) {
-		%!containers{$scene.WHICH} //=
+		# TODO without eager here, reification fails with more than 1 or 2 threads
+			# reduce and report
+		eager %!containers{$scene.WHICH} //=
 			$scene.objects.grep({ .geometry.contains_point(self.position) }) //
 			[]
 	}

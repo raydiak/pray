@@ -41,7 +41,7 @@ our sub render (
 
 	$*ERR.say('Segmenting') unless $quiet;
 	
-	my $threads = 2;
+	my $threads = 4;
 	my $sched = ThreadPoolScheduler.new(
 		max_threads => $threads
 	);
