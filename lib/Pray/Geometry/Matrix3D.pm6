@@ -51,25 +51,27 @@ method scale (:$x = 1, :$y = 1, :$z = 1) {
 }
 
 method rotate ($axis where enum <x y z>, $angle) {
-	return self.clone unless $angle;
-	
-	my $return = self.identity;
-	
-	my ($x, $y);
-	given $axis {
-		when 'x' { ($x, $y) = 1, 2 }
-		when 'y' { ($x, $y) = 0, 2 }
-		when 'z' { ($x, $y) = 0, 1 }
-	}
-	
-	my ($sin, $cos) = .sin, .cos given $angle;
-	
-	$return.values[$x][$x] = $cos;
-	$return.values[$x][$y] = -$sin;
-	$return.values[$y][$x] = $sin;
-	$return.values[$y][$y] = $cos;
-	
-	return $return;
+	$angle ?? {
+		my $return = self.identity;
+		
+		my ($x, $y);
+		given $axis {
+			when 'x' { ($x, $y) = 1, 2 }
+			when 'y' { ($x, $y) = 0, 2 }
+			when 'z' { ($x, $y) = 0, 1 }
+		}
+		
+		my ($sin, $cos) = .sin, .cos given $angle;
+		
+		$return.values[$x][$x] = $cos;
+		$return.values[$x][$y] = -$sin;
+		$return.values[$y][$x] = $sin;
+		$return.values[$y][$y] = $cos;
+		
+		$return;
+	}() !!
+		self.clone
+	;
 }
 
 method invert () {
@@ -101,11 +103,12 @@ method invert () {
 		$s[4] * $c[1] +
 		$s[5] * $c[0];
 	
-	return self.zero unless $det; # more correct to die here?
+	#return self.zero unless $det; # more correct to die here?
+	die "Cannot invert zero-determinant matrix:\n{$i.perl}" unless $det;
 	
 	my $invdet = 1 / $det;
 
-	return m3d( [
+	m3d( [
 		( $i[1][1] * $c[5] - $i[1][2] * $c[4] + $i[1][3] * $c[3]) * $invdet,
 		(-$i[0][1] * $c[5] + $i[0][2] * $c[4] - $i[0][3] * $c[3]) * $invdet,
 		( $i[3][1] * $s[5] - $i[3][2] * $s[4] + $i[3][3] * $s[3]) * $invdet,
@@ -141,7 +144,7 @@ method multiply (Pray::Geometry::Matrix3D $m) {
 			
 		}
 	}
-	return m3d( |@values );
+	m3d( |@values );
 }
 
 
