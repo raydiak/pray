@@ -1,6 +1,6 @@
 class Pray::Geometry::Vector3D;
 
-use Pray::Geometry::Matrix3D;
+use Math::ThreeD::Mat44;
 
 has $.x = 0;
 has $.y = 0;
@@ -178,12 +178,11 @@ multi method rotate (
 
 
 
-method transform (Pray::Geometry::Matrix3D $m) {
-	my $v := $m.values;
+method transform (Mat44 $m) {
 	$?CLASS.new(
-		x => $!x*$v[0][0] + $!y*$v[0][1] + $!z*$v[0][2] + $v[0][3],
-		y => $!x*$v[1][0] + $!y*$v[1][1] + $!z*$v[1][2] + $v[1][3],
-		z => $!x*$v[2][0] + $!y*$v[2][1] + $!z*$v[2][2] + $v[2][3]
+		x => $!x*$m[0][0] + $!y*$m[0][1] + $!z*$m[0][2] + $m[0][3],
+		y => $!x*$m[1][0] + $!y*$m[1][1] + $!z*$m[1][2] + $m[1][3],
+		z => $!x*$m[2][0] + $!y*$m[2][1] + $!z*$m[2][2] + $m[2][3]
 	)
 }
 

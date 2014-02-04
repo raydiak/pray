@@ -6,7 +6,7 @@ class Pray::Geometry::Object;
 	# now that csg works (?) it should be refactored
 		# too redundant, and awkward params
 
-use Pray::Geometry::Matrix3D;
+use Math::ThreeD::Mat44;
 use Pray::Geometry::Vector3D;
 use Pray::Geometry::Ray;
 
@@ -24,39 +24,43 @@ method _build_transform (
 	Bool :$position = True,
 	Bool :$scale_inv = False
 ) {
-	my $transform = m3d.identity;
+	my $transform = mat44-ident;
 	if ($!scale) {
-		my %args = <x y z>.map: { $_ => $!scale."$_"() };
-		my $scale_mat = m3d.scale(|%args);
-		$scale_mat .= invert if $scale_inv;
-		$transform .= multiply( $scale_mat );
+		my @args = <x y z>.map: { $!scale."$_"() };
+		my $scale_mat = mat44-scale(|@args);
+		$scale_mat.invert if $scale_inv;
+		$transform.product( $scale_mat );
 	}
 	if ($!rotate) {
 		my $rotate = self.rotate_radians;
 		for <z y x> -> $axis {
 			if $rotate."$axis"() -> $angle {
-				$transform .= multiply( m3d.rotate($axis, $angle) );
+				given $axis {
+					when 'x' { $transform.product( mat44-rot-x($angle) ) };
+					when 'y' { $transform.product( mat44-rot-y($angle) ) };
+					when 'z' { $transform.product( mat44-rot-z($angle) ) };
+				}
 			}
 		}
 	}
 	if $position && $!position {
-		my %args = <x y z>.map: { $_ => $!position."$_"() // 0 };
-		$transform .= multiply( m3d.translate(|%args) );
+		my @args = <x y z>.map: { $!position."$_"() // 0 };
+		$transform.product( mat44-trans(|@args) );
 	}
 	
 	return $transform;
 }
 
-has Pray::Geometry::Matrix3D $!transform =
+has Mat44 $!transform =
 	self._build_transform;
-has Pray::Geometry::Matrix3D $!transform_dir =
+has Mat44 $!transform_dir =
 	self._build_transform( :!position );
-has Pray::Geometry::Matrix3D $!transform_norm =
+has Mat44 $!transform_norm =
 	self._build_transform( :!position, :scale_inv );
 
-has Pray::Geometry::Matrix3D $!inv_transform = $!transform.invert;
-has Pray::Geometry::Matrix3D $!inv_transform_dir = $!transform_dir.invert;
-has Pray::Geometry::Matrix3D $!inv_transform_norm = $!transform_norm.invert;
+has Mat44 $!inv_transform = $!transform.inv;
+has Mat44 $!inv_transform_dir = $!transform_dir.inv;
+has Mat44 $!inv_transform_norm = $!transform_norm.inv;
 
 method _build_csg_obj () {
 	self.csg.map: {
