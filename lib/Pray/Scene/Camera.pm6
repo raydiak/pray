@@ -11,11 +11,11 @@ class Pray::Scene::Camera::Anaglyph {
 };
 
 class Pray::Scene::Camera {
-	use Pray::Geometry::Vector3D;
+	use Math::ThreeD::Vec3;
 	use Pray::Scene::Color;
 
-	has Pray::Geometry::Vector3D $.position = v3d(3,-7,3);
-	has Pray::Geometry::Vector3D $.object = v3d(0,0,0);
+	has Vec3 $.position = vec3(3,-7,3);
+	has Vec3 $.object = vec3(0,0,0);
 	has Real $.roll = 0;
 	has Real $.roll_radians = self.roll * pi / 180;
 
@@ -34,7 +34,7 @@ class Pray::Scene::Camera {
 	has %!containers;
 
 	method polar () {
-		my ($x, $y, $z) = .x, .y, .z given $.object.subtract($.position);
+		my ($x, $y, $z) = .[0], .[1], .[2] given $.object.sub($.position);
 		my $theta = atan2($y, $x);
 		my $phi = atan2($z, sqrt($x*$x + $y*$y));
 		return $theta, $phi;
@@ -46,19 +46,19 @@ class Pray::Scene::Camera {
 		my ($theta, $phi) = self.polar;
 		my $roll_radians = self.roll_radians;
 
-		my $view_c = v3d(
+		my $view_c = vec3(
 			cos($theta) * cos($phi),
 			sin($theta) * cos($phi),
 			sin($phi)
 		);
 
-		my $view_u = v3d(
+		my $view_u = vec3(
 			cos($theta - $quarter_circle),
 			sin($theta - $quarter_circle),
 			0
 		).rotate($view_c, $roll_radians);
 
-		my $view_v = v3d(
+		my $view_v = vec3(
 			cos($theta) * cos($phi + $quarter_circle),
 			sin($theta) * cos($phi + $quarter_circle),
 			sin($phi + $quarter_circle)
@@ -81,7 +81,7 @@ class Pray::Scene::Camera {
 			@views = -1, 1;
 			for @views {
 				$_ = hash(
-					pos => $!position.add( $!vectors[1].scale(
+					pos => $!position.add( $!vectors[1].mul(
 						$!anaglyph.separation / 2 * $_
 					) ),
 					color => $_ < 0 ?? $!anaglyph.left !! $!anaglyph.right,
@@ -92,8 +92,8 @@ class Pray::Scene::Camera {
 		}
 		
 		my $dir = $!vectors[0]\
-			.add( $!vectors[1].scale($x) )\
-			.add( $!vectors[2].scale($y) )\
+			.add( $!vectors[1].mul($x) )\
+			.plus( $!vectors[2].mul($y) )\
 			.normalize;
 		
 		for @views {
