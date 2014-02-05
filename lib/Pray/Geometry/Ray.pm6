@@ -1,38 +1,13 @@
 class Pray::Geometry::Ray;
 
-use Pray::Geometry::Vector3D;
+use Math::ThreeD::Vec3;
 
-has Pray::Geometry::Vector3D $.position;
-has Pray::Geometry::Vector3D $.direction;
+has Vec3 $.position;
+has Vec3 $.direction;
 
 method normalize () {
 	self.new(
 		position => $.position,
-		direction => $.direction.normalize
+		direction => $.direction.mul(1/$.direction.length);
 	)
 }
-
-#`[[[
-method scale ($argument, :$center) {
-	self.new(
-		:position($center ??
-			self.position.scale($argument, :$center)
-		!!
-			self.position.scale($argument)
-		),
-		:direction(self.direction.scale($argument))
-	)
-}
-
-method rotate (*@arguments, :$center) {
-	self.new(
-		:position($center ??
-			self.position.rotate(|@arguments, :$center)
-		!!
-			self.position.rotate(|@arguments)
-		),
-		:direction(self.direction.rotate(|@arguments))
-	)
-}
-]]]
-
