@@ -1,6 +1,6 @@
 {
 	"lights": [ {
-		"position": { "x":30, "y":-60, "z":40 },
+		"position": [30,-60,40],
 		"intensity": 5000
 	} ],
 	"objects": [ {
