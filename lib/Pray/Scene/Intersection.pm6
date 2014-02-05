@@ -2,7 +2,7 @@ class Pray::Scene::Intersection;
 
 use Pray::Geometry::Ray;
 use Pray::Scene::Object;
-use Pray::Geometry::Vector3D;
+use Math::ThreeD::Vec3;
 
 # tested ray
 has Pray::Geometry::Ray $.ray;
@@ -14,24 +14,24 @@ has Pray::Scene::Object $.object;
 has $.scene;
 
 # collision position in scene space
-has Pray::Geometry::Vector3D $.position =
+has Vec3 $.position =
 	$!ray && $!distance ??
 		$!ray.position.add(
-			$!ray.direction.scale($!distance)
+			$!ray.direction.mul($!distance)
 		) !!
-		Pray::Geometry::Vector3D;
+		Vec3;
 
 # collision distance in ray lengths
 has $.distance =
 	$!ray && $!position ??
 		sqrt(
-			$!position.subtract($!ray.position).length_sqr /
+			$!position.sub($!ray.position).length_sqr /
 			$!ray.direction.length_sqr
 		) !!
 		Any;
 
 # surface normal at intersection
-has Pray::Geometry::Vector3D $.direction;
+has Vec3 $.direction;
 
 # objects which contained the ray before collision
 has @.containers =
