@@ -7,7 +7,7 @@ class Pray::Geometry::Object;
 		# too redundant, and awkward params
 
 use Math::ThreeD::Mat44;
-use Pray::Geometry::Vector3D;
+use Math::ThreeD::Vec3;
 use Pray::Geometry::Ray;
 
 use Pray::Input::JSON;
@@ -16,9 +16,9 @@ has Str $.primitive = self.^name ~~ /^'Pray::Geometry::'(.)(.*)$/ ??
 	$0.lc~$1 !!
 	self.^name;
 	
-has Pray::Geometry::Vector3D $.position;
-has Pray::Geometry::Vector3D $.scale;
-has Pray::Geometry::Vector3D $.rotate;
+has Vec3 $.position;
+has Vec3 $.scale;
+has Vec3 $.rotate;
 
 method _build_transform (
 	Bool :$position = True,
@@ -95,8 +95,8 @@ method ray_intersection (
 	
 	# transform ray
 	$ray .= new(
-		position  =>  $orig_ray.position.transform( $!inv_transform ),
-		direction => $orig_ray.direction.transform( $!inv_transform_dir )
+		position  =>  $orig_ray.position.trans( $!inv_transform ),
+		direction => $orig_ray.direction.trans( $!inv_transform_dir )
 	) if $transform;
 	
 	# intersection and culling
@@ -144,12 +144,12 @@ method ray_intersection (
 	# transform results
 	for @return -> $result {
 		if $transform {
-			$result[0] = $result[0].transform($!transform);
-			$result[1] = $result[1].transform($!transform_norm).normalize;
+			$result[0].transform($!transform);
+			$result[1].transform($!transform_norm).normalize;
 		}
 
 		# distance is optional in return from primitives
-		$result[2] = $result[0].subtract($orig_ray.position).length /
+		$result[2] = $result[0].sub($orig_ray.position).length /
 			$orig_ray.direction.length
 			unless !$transform && $result[2].defined;
 	}
@@ -224,15 +224,15 @@ method ray_intersection_csg_deintersect (
 	return @return;
 }
 
-method _ray_intersection (Pray::Geometry::Ray $ray) { return }
+method _ray_intersection (Pray::Geometry::Ray $ray) { }
 
 method contains_point (
-	Pray::Geometry::Vector3D $point is copy,
+	Vec3 $point is copy,
 	:$csg = True,
 	Bool :$transform = True,
 ) {
 	#transform
-	$point .= transform($!inv_transform) if $transform;
+	$point.transform($!inv_transform) if $transform;
 
 	#calculate
 	my $return = self._contains_point($point);
@@ -257,7 +257,7 @@ method contains_point (
 	return $return;
 }
 
-method _contains_point (Pray::Geometry::Vector3D $point) { return False }
+method _contains_point (Vec3 $point) { return False }
 
 method rotate_radians () {
 	self.rotate.scale(pi/180)
