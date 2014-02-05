@@ -35,8 +35,9 @@ method _build_transform (
 		my $rotate = self.rotate_radians;
 		my %axii = :x(0), :y(1), :z(2);
 		for <z y x> -> $axis {
-			$transform.product( &"mat44-rot-$axis"($angle) );
-				if $rotate[%axii{$axis}] -> $angle;
+			if $rotate[%axii{$axis}] -> $angle {
+				$transform.product( &::("mat44-rot-$axis")($angle) );
+			}
 		}
 	}
 	if $position && $!position {
