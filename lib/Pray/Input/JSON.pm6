@@ -3,6 +3,7 @@ module Pray::Input::JSON;
 # will either be heavily customized for scene files, or replaced
 
 use JSON::Tiny;
+use Math::ThreeD::Vec3;
 
 sub panic ($json, $type) {
 	die "Cannot load {$json.perl} to type {$type.perl}"
@@ -40,6 +41,10 @@ multi _load ($json is copy, Any $x) {
 		%args{$arg} = $json{$arg};
 	}
 	return $type.new(|%args)
+}
+
+multi _load ($json, Vec3) {
+	return vec3($json[0], $json[1], $json[2])
 }
 
 multi _load ($json, @x) {
