@@ -8,6 +8,6 @@ has Vec3 $.direction;
 method normalize () {
 	self.new(
 		position => $.position,
-		direction => $.direction.mul(1/$.direction.length);
+		direction => $.direction.norm;
 	)
 }
