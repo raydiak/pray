@@ -2,11 +2,11 @@ use v6;
 use Pray::Geometry::Object;
 class Pray::Geometry::Sphere is Pray::Geometry::Object;
 
-use Pray::Geometry::Vector3D;
+use Math::ThreeD::Vec3;
 use Pray::Geometry::Ray;
 
-method _contains_point (Pray::Geometry::Vector3D $point) {
-	return !!($point.length_sqr < 1);
+method _contains_point (Vec3 $point) {
+	return ?($point.length_sqr < 1);
 }
 
 method _ray_intersection (
