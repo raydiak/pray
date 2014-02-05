@@ -2,11 +2,11 @@ use v6;
 use Pray::Geometry::Object;
 class Pray::Geometry::Cylinder is Pray::Geometry::Object;
 
-use Pray::Geometry::Vector3D;
+use Math::ThreeD::Vec3;
 use Pray::Geometry::Ray;
 
-method _contains_point (Pray::Geometry::Vector3D $point) {
-	!!( $point.z.abs < 1 && $point.x**2+$point.y**2 < 1 )
+method _contains_point (Vec3 $point) {
+	?( $point[2].abs < 1 && $point[0]**2+$point[1]**2 < 1 )
 }
 
 method _ray_intersection (
@@ -15,13 +15,13 @@ method _ray_intersection (
 	my ($ray_pos, $ray_dir) = .position, .direction given $ray;
 
 	# $ray_dir.length_sqr;
-	my $a = $ray_dir.x**2 + $ray_dir.y**2;
+	my $a = $ray_dir[0]**2 + $ray_dir[1]**2;
 	
 	# $ray_dir.dot( $ray_pos ) * 2;
-	my $b = ( $ray_pos.x*$ray_dir.x + $ray_pos.y*$ray_dir.y ) * 2;
+	my $b = ( $ray_pos[0]*$ray_dir[0] + $ray_pos[1]*$ray_dir[1] ) * 2;
 	
 	# $ray_pos.length_sqr - 1
-	my $c = $ray_pos.x**2 + $ray_pos.y**2 - 1;
+	my $c = $ray_pos[0]**2 + $ray_pos[1]**2 - 1;
 	
 	my $determinant = $b * $b - 4 * $a * $c;
 	
@@ -39,39 +39,39 @@ method _ray_intersection (
 
 		if @list {
 			my @u = @list.map: { (-$b + $det_root*$_) / (2 * $a) };
-			my @p = @u.map: { $ray_pos.add( $ray_dir.scale($_) ) };
+			my @p = @u.map: { $ray_pos.add( $ray_dir.mul($_) ) };
 			for ^@list -> $i {
-				my $z = @p[$i].z;
+				my $z = @p[$i][2];
 				if -1 <= $z <= 1 {
 					@return_points.push([
 						$_,
-						v3d(.x, .y, 0),
+						vec3(.[0], .[1], 0),
 						@u[$i]
 					]) given @p[$i];
 				} elsif
 					@list > 1 && (
-						-1 <= @p[1-$i].z <= 1 ||
-						$z.sign != @p[1-$i].z.sign
+						-1 <= @p[1-$i][2] <= 1 ||
+						$z.sign != @p[1-$i][2].sign
 					)
 				{
 					my $sign = $z.sign;
-					my $u = ($sign - $ray_pos.z) / $ray_dir.z;
-					my $point = $ray_pos.add( $ray_dir.scale($u));
+					my $u = ($sign - $ray_pos[2]) / $ray_dir[2];
+					my $point = $ray_pos.add( $ray_dir.mul($u));
 					@return_points.push([
 						$point,
-						v3d(0, 0, $sign),
+						vec3(0, 0, $sign),
 						$u
 					]);
 				}
 			}
-		} elsif $c <= 0 && $ray_dir.z {
+		} elsif $c <= 0 && $ray_dir[2] {
 			@list = -1, 1;
 			for @list -> $sign {
-				my $u = ($sign - $ray_pos.z) / $ray_dir.z;
-				my $point = $ray_pos.add( $ray_dir.scale($u));
+				my $u = ($sign - $ray_pos[2]) / $ray_dir[2];
+				my $point = $ray_pos.add( $ray_dir.mul($u));
 				@return_points.push([
 					$point,
-					v3d(0, 0, $sign),
+					vec3(0, 0, $sign),
 					$u
 				]);
 			}
