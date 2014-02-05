@@ -260,7 +260,7 @@ method contains_point (
 method _contains_point (Vec3 $point) { return False }
 
 method rotate_radians () {
-	self.rotate.scale(pi/180)
+	self.rotate.mul(pi/180)
 }
 
 
