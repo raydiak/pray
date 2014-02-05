@@ -19,8 +19,8 @@ method intersection_color (
 		$color = $.ambient.color_shaded if $.ambient;
 		
 		for $int.scene.lights[] -> $light {
-			my $light_dir = $light.position.subtract($int.position);
-			my $light_dir_norm = $light_dir.normalize;
+			my $light_dir = $light.position.sub($int.position);
+			my $light_dir_norm = $light_dir.norm;
 			my $cos_to_light = $int.direction.dot($light_dir_norm);
 
 			# Horizon check
