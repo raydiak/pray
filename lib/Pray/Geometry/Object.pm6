@@ -98,7 +98,7 @@ method ray_intersection (
 	
 	# intersection and culling
 	my @return = self._ray_intersection($ray);
-	if $inside { $_[1] .= reverse for @return };
+	if $inside { $_[1].negate for @return };
 	@return .= grep: {
 		$_[2] >= 0 &&
 		( !$segment || $_[2] <= 1 ) &&
