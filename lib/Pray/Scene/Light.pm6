@@ -4,12 +4,12 @@ use Pray::Scene::Lighting;
 
 class Pray::Scene::Light is Pray::Scene::Lighting;
 
-use Pray::Geometry::Vector3D;
+use Math::ThreeD::Vec3;
 use Pray::Geometry::Ray;
 use Pray::Scene::Color;
 use Pray::Scene::Intersection;
 
-has Pray::Geometry::Vector3D $.position;
+has Vec3 $.position;
 
 method intersection_color (
 	Pray::Scene::Intersection $int
@@ -19,7 +19,7 @@ method intersection_color (
 	if $int.scene {
 		my $ray_to_light = Pray::Geometry::Ray.new(
 			position => $int.position,
-			direction => $.position.subtract($int.position)
+			direction => $.position.sub($int.position)
 		);
 		
 		# objects between light and intersection
@@ -47,8 +47,8 @@ method intersection_color (
 	return self.point_color($int.position).scale($shadow);
 }
 
-method point_color (Pray::Geometry::Vector3D $point) {
-	my $light_dist_sqr = $.position.subtract($point).length_sqr;
+method point_color (Vec3 $point) {
+	my $light_dist_sqr = $.position.sub($point).length_sqr;
 	my $light_falloff = 1 / (1 + $light_dist_sqr);
 	return self.color_scaled.scale($light_falloff);
 }
