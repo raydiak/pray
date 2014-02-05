@@ -1,6 +1,6 @@
 use v6;
 
-use Pray::Geometry::Vector3D;
+use Math::ThreeD::Vec3;
 use Pray::Geometry::Ray;
 use Pray::Scene::Color;
 
@@ -25,7 +25,7 @@ class Pray::Scene::Diffusion is Pray::Scene::Lighting {
 	multi method color_shaded (
 		Pray::Scene::Color $light_color,
 		$int,
-		Pray::Geometry::Vector3D $light_dir,
+		Vec3 $light_dir,
 	) {
 		self.color_shaded(
 			$light_color,
@@ -40,10 +40,10 @@ class Pray::Scene::Specularity is Pray::Scene::Lighting {
 	method color_shaded (
 		Pray::Scene::Color $light_color,
 		$int,
-		Pray::Geometry::Vector3D $light_dir,
+		Vec3 $light_dir,
 	) {
 		my $reflect_dir = $light_dir.reflect($int.direction);
-		my $specular = $reflect_dir.reverse.dot($int.ray.direction);
+		my $specular = $reflect_dir.negate.dot($int.ray.direction);
 
 		if $specular > 0 {
 			$specular **= $!sharpness
@@ -66,7 +66,7 @@ class Pray::Scene::Reflection is Pray::Scene::Lighting {
 		:$recurse,
 	) {
 		my $reflect_dir = $int.ray.direction\
-			.reflect($int.direction).scale(-1);
+			.reflect($int.direction).negate;
 		my $reflect_ray = Pray::Geometry::Ray.new(
 			position => $int.position,
 			direction => $reflect_dir
@@ -139,7 +139,7 @@ class Pray::Scene::Transparency is Pray::Scene::Lighting {
 			$refract_dir = $int.ray.direction;
 		} else {
 			# angle between boundary surface and incoming ray
-			my $cos_theta_1 = $int.direction.dot($int.ray.direction.reverse);
+			my $cos_theta_1 = $int.direction.dot($int.ray.direction.neg);
 			
 			# angle between boundary surface and outgoing ray
 			my $cos_theta_2 = 1 - $ratio**2 * (1 - $cos_theta_1**2);
@@ -148,8 +148,8 @@ class Pray::Scene::Transparency is Pray::Scene::Lighting {
 				$cos_theta_2 .= sqrt;
 				$cos_theta_2 *= -1 if $cos_theta_1 < 0;
 				
-				$refract_dir = $int.ray.direction.scale($ratio).add(
-					$int.direction.scale($ratio*$cos_theta_1 - $cos_theta_2)
+				$refract_dir = $int.ray.direction.mul($ratio).plus(
+					$int.direction.mul($ratio*$cos_theta_1 - $cos_theta_2)
 				);
 			} # else total internal reflection - add internal reflection and scale the color of the reflected and refracted rays using fresnel equations - call to Reflective somehow?
 		}
