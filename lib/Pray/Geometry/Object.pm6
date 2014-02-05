@@ -26,21 +26,17 @@ method _build_transform (
 ) {
 	my $transform = mat44-ident;
 	if ($!scale) {
-		my @args = <x y z>.map: { $!scale."$_"() };
+		my @args = [0, 1, 2].map: { $!scale[$_] };
 		my $scale_mat = mat44-scale(|@args);
 		$scale_mat.invert if $scale_inv;
 		$transform.product( $scale_mat );
 	}
 	if ($!rotate) {
 		my $rotate = self.rotate_radians;
+		my %axii = :x(0), :y(1), :z(2);
 		for <z y x> -> $axis {
-			if $rotate."$axis"() -> $angle {
-				given $axis {
-					when 'x' { $transform.product( mat44-rot-x($angle) ) };
-					when 'y' { $transform.product( mat44-rot-y($angle) ) };
-					when 'z' { $transform.product( mat44-rot-z($angle) ) };
-				}
-			}
+			$transform.product( &"mat44-rot-$axis"($angle) );
+				if $rotate[%axii{$axis}] -> $angle;
 		}
 	}
 	if $position && $!position {
