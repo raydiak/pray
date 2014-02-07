@@ -39,13 +39,13 @@ method _ray_intersection (
 
 		if @list {
 			my @u = @list.map: { (-$b + $det_root*$_) / (2 * $a) };
-			my @p = @u.map: { $ray_pos.add( $ray_dir.mul($_) ) };
+			my @p = @u.map: { $ray_pos.add( $ray_dir.mul($_) ).item };
 			for ^@list -> $i {
 				my $z = @p[$i][2];
 				if -1 <= $z <= 1 {
 					@return_points.push([
 						$_,
-						vec3(.[0], .[1], 0),
+						vec3(.[0], .[1], 0).item,
 						@u[$i]
 					]) given @p[$i];
 				} elsif
@@ -59,7 +59,7 @@ method _ray_intersection (
 					my $point = $ray_pos.add( $ray_dir.mul($u));
 					@return_points.push([
 						$point,
-						vec3(0, 0, $sign),
+						vec3(0, 0, $sign).item,
 						$u
 					]);
 				}
@@ -71,7 +71,7 @@ method _ray_intersection (
 				my $point = $ray_pos.add( $ray_dir.mul($u));
 				@return_points.push([
 					$point,
-					vec3(0, 0, $sign),
+					vec3(0, 0, $sign).item,
 					$u
 				]);
 			}
