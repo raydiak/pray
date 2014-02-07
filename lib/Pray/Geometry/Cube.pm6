@@ -26,7 +26,7 @@ method _ray_intersection (Pray::Geometry::Ray $ray) {
 		my $pos = $ray_pos[$a];
 
 		my @u = (-1, 1).map: { ($_ - $pos) / $dir };
-		my @p = @u.map: { $ray_pos.add( $ray_dir.mul($_) ) };
+		my @p = @u.map: { $ray_pos.add( $ray_dir.mul($_) ).item };
 		my @o_a = @axii.grep: {$_ != $a};
 
 		for ^@p -> $i {
@@ -42,7 +42,7 @@ method _ray_intersection (Pray::Geometry::Ray $ray) {
 				0
 			};
 			
-			@return.push([ $p, vec3(|@norm), @u[$i] ]);
+			@return.push([ $p.item, vec3(|@norm).item, @u[$i] ]);
 			
 			last OUTER if @return >= 2;
 		}
