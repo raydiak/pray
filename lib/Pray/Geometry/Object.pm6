@@ -41,7 +41,7 @@ method _build_transform (
 		}
 	}
 	if $position && $!position {
-		my @args = <x y z>.map: { $!position."$_"() // 0 };
+		my @args = [0, 1, 2].map: { $!position[$_] };
 		$transform.product( mat44-trans(|@args) );
 	}
 	
