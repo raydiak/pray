@@ -1,21 +1,21 @@
 {
 	"camera": {
-		"position":	{ "x":3, "y":-7, "z":1 },
-		"object": { "x":0, "y":0, "z":0.1 },
+		"position":	[3, -7, 1],
+		"object": [0, 0, 0.1],
 		"fov": 27 },
 	"lights": [ {
-		"position": { "x":30, "y":-60, "z":40 },
+		"position": [30, -60, 40],
 		"intensity": 5000
 	} ],
 	"objects": [
 		{
 			"geometry": {
 				"primitive": "cube",
-				"rotate": { "x":45, "y":45, "z":0 },
+				"rotate": [45, 45, 0],
 				"csg": [
 					"subtract", {
 						"primitive": "sphere",
-						"scale": { "x":1.25, "y":1.25, "z":1.25 } }
+						"scale": [1.25, 1.25, 1.25] }
 				] },
 			"material": {
 				"ambient": {
@@ -35,7 +35,7 @@
 		}, {
 			"geometry": {
 				"primitive": "cone",
-				"scale": { "x":0.625, "y":0.625, "z":0.625 }
+				"scale": [0.625, 0.625, 0.625]
 			}, "material": {
 				"ambient": {
 					"color": { "r":1, "g":1, "b":0.75 },
