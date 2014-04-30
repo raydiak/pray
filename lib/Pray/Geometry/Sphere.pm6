@@ -34,7 +34,7 @@ method _ray_intersection (
 			my $u = (-$b + $sign * $det_root) / (2 * $a);
 			
 			my $point = $ray_pos.add(
-				$ray_dir.scale($u)
+				$ray_dir.mul($u)
 			);
 
 			@return_points.push([
