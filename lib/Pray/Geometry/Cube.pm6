@@ -19,7 +19,7 @@ method _ray_intersection (Pray::Geometry::Ray $ray) {
 	my @axii = <x y z>;
 	my @return;
 	
-	OUTER: for @axii -> $a {
+	for @axii -> $a {
 		my $dir = $ray_dir."$a"();
 		next unless $dir;
 
@@ -44,7 +44,7 @@ method _ray_intersection (Pray::Geometry::Ray $ray) {
 			
 			@return.push([ $p, v3d(|@norm), @u[$i] ]);
 			
-			last OUTER if @return >= 2;
+			return @return if @return >= 2;
 		}
 	}
 	
