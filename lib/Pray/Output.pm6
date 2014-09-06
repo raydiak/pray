@@ -47,7 +47,7 @@ sub color_ppm ($r, $g, $b) {
 
 sub color_preview ($r, $g, $b) {
 	return '*' unless $r.defined && $g.defined && $b.defined;
-	constant @chars = ' ', < ░ ▒ ▓ █ >;
+	constant @chars = ' ', '░', '▒', '▓', '█';
 	constant $shades = @chars - 1;
 	my $shade = ( ($r + $g + $b) / 3 );
 
@@ -182,7 +182,8 @@ class Pray::Output {
 			($r, $g, $b)».map({ val_fmt $_ }).join('');
 		
 		if $preview {
-			self.update_preview($x, $y);#, :color($r, $g, $b));
+			self.update_preview($x, $y);
+			#self.update_preview($x, $y, :color($r, $g, $b));
 			self.progress( :$preview, :force( !$!incomplete ) );
 		}
 		
@@ -273,7 +274,11 @@ class Pray::Output {
 			$complete / $total_time
 		) if $total_time;
 		
-		shell 'clear';
+		if $*DISTRO.is-win {
+			shell 'cls';
+		} else {
+			shell 'clear';
+		}
 		$*ERR.print($out);
 
 		return;
