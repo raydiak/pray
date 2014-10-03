@@ -142,7 +142,7 @@ sub seconds_to_time ($seconds is copy) {
 }
 
 sub preview_color (Pray::Scene::Color $color, $count = 2) {
-	constant @chars = ' ', < ░ ▒ ▓ █ >;
+	constant @chars = ' ', '░', '▒', '▓', '█';
 	constant $shades = @chars - 1;
 	my $shade = ( ($color.r + $color.g + $color.b) / 3 );
 	my $return = '';
