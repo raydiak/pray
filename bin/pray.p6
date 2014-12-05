@@ -16,7 +16,7 @@ sub MAIN (
 	Bool :$preview = !$quiet,
 ) {
 	$image //= 
-		$scene.path.basename ~~ /^ (.*) \. .*? $/ ??
+		$scene.IO.basename ~~ /^ (.*) \. .*? $/ ??
 		"$0.ppm" !!
 		'scene.ppm';
 	
