@@ -156,15 +156,18 @@ position/scale/rotate applies to the whole object including CSG sub-geometries.
 
 HACKING
 
-There is much which could be added, improved, or simplified. So jump in! I'm looking forward to seeing what others do with Pray.
+There is much which could be added, improved, or simplified. So jump in! I'm
+looking forward to seeing what others do with Pray.
 
 This is my first Perl 6 project, thus much of the code probably looks a lot
 like Perl 5. As a self-education project, I have been and continue to be
 learning and re-learning Perl 6 over the course of development, small parts at
 a time. The numerous iterations over all of the major components still show
 through in some spots, and in some others it's just clear that my understanding
-is still incomplete. Even the situational use of bracketing and indenting is inconsistent; I do at least stick to 4-column tab indents, though. Patches and suggestions are welcome and appreciated for
-style and structure as much as functionality.
+is still incomplete. Even the situational use of bracketing and indenting is
+inconsistent; I do at least stick to 4-column tab indents, though. Patches and
+suggestions are welcome and appreciated for style and structure as much as
+functionality.
 
 The class hierarchy is a little troubling in some ways, but should be generally
 simple to navigate and understand. More thought needs to go into the API in
