@@ -1,15 +1,18 @@
 ABOUT
 
 This is Pray, a Perl 6 ray tracer. It is tested to work with recent builds of
-Rakudo JVM - the Parrot backend is untested. JSON::Tiny is required.
+Rakudo on the MoarVM backend, though it is likely to work on any modern
+Rakudo. JSON::Tiny is required.
 
 
 
 INSTALLATION
 
-A recent Perl 6 implementation and the JSON::Tiny module are the only
-installation considerations; Pray itself is simply extracted and executed (the
-script itself is in the "bin" directory).
+The recommended way to install Pray is via panda, by running "panda install
+App::Pray". Pray will also run just fine by simply cloning/extracting it
+anywhere you like, though startup time will be increased if not precompiled
+(e.g. by panda-build), and you will also have to ensure that the JSON::Tiny
+module is installed.
 
 
 
@@ -19,12 +22,15 @@ Input is a JSON scene file, described later. Output is an image file in PPM
 format (one of the NetPBM formats, readable by many popular image viewers and
 editors (GIMP was used in the course of development).
 
-Two positional arguments are accepted. The first is the name of the scene file
-to read, which defaults to "scene.json". The second is the file name of the PPM
-image to write, and defaults to the file name of the scene file (ignoring
-any directory prefix), with everything after the last period replaced by "ppm".
-For example, if the scene file name is "../examples/scene-01.json", the image
-file name defaults to "scene-01.ppm" in the current working directory.
+Pray is normally invoked as the "pray" script in the bin directory of the
+module, which may also be copied/linked elsewhere like in your path if you
+installed via panda. Two positional arguments are accepted. The first is the
+name of the scene file to read, which defaults to "scene.json". The second is
+the file name of the PPM image to write, and defaults to the file name of the
+scene file (ignoring any directory prefix), with everything after the last
+period replaced by "ppm". If the scene file name is "examples/scene-01.json"
+for instance, then the image file name defaults to "scene-01.ppm" in the
+current working directory.
 
 --width
 --height
