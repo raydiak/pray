@@ -2,7 +2,9 @@
 
 use v6;
 
-use lib $?FILE.IO.parent.parent.child('lib');
+my constant $root = $?FILE.IO.parent.parent;
+use lib $root.child('lib');
+use lib $root.child('blib').child('lib');
 
 use Pray;
 
