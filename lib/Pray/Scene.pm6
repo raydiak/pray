@@ -13,6 +13,8 @@ has Pray::Scene::Object @.objects;
 has Pray::Scene::Light @.lights;
 has Pray::Scene::Camera $.camera = Pray::Scene::Camera.new;
 
+has Pray::Scene::Color $.sky = black;
+
 method load (Str $file) {
     Pray::Input::JSON::load_file($file, self.WHAT);
 }
@@ -87,7 +89,7 @@ method intersection_color (
     $intersection,
     :$recurse,
 ) {
-    return black unless $intersection && $intersection.object;
+    return $.sky unless $intersection && $intersection.object;
 
     return $intersection.object.material.intersection_color(
         $intersection,
