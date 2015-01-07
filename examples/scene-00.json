@@ -1,9 +1,9 @@
 {
-	"lights": [ {
-		"position": { "x":30, "y":-60, "z":40 },
-		"intensity": 5000
-	} ],
-	"objects": [ {
-		"geometry": { "primitive": "cube" }
-	} ]
+    "lights": [ {
+        "position": { "x":30, "y":-60, "z":40 },
+        "intensity": 5000
+    } ],
+    "objects": [ {
+        "geometry": { "primitive": "cube" }
+    } ]
 }
