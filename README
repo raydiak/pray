@@ -18,9 +18,9 @@ module is installed.
 
 USAGE
 
-Input is a JSON scene file, described later. Output is an image file in PPM
-format (one of the NetPBM formats, readable by many popular image viewers and
-editors (GIMP was used in the course of development).
+Input is a JSON scene file, described later. Output is a PPM image file, one of
+the NetPBM formats, readable by many popular image viewers and editors (GIMP
+was used in the course of development).
 
 Pray is normally invoked as the "pray" script in the bin directory of the
 module, which may also be copied/linked elsewhere like in your path if you
