@@ -14,6 +14,7 @@ has Pray::Scene::Light @.lights;
 has Pray::Scene::Camera $.camera = Pray::Scene::Camera.new;
 
 has Pray::Scene::Color $.sky = black;
+has $.refraction = 1;
 
 method load (Str $file) {
     Pray::Input::JSON::load_file($file, self.WHAT);

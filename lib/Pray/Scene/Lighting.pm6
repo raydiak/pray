@@ -90,7 +90,7 @@ class Pray::Scene::Transparency is Pray::Scene::Lighting {
         :$recurse
     ) {
         #refractive index when we're not inside any object
-        my $ambient_ri = 1; # move this to scene file
+        my $ambient_ri = $int.scene.refraction;
         #`[[[
             vacuum        1
             normal air    1.000277
