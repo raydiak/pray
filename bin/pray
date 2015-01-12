@@ -10,18 +10,13 @@ use Pray;
 
 sub MAIN (
     Str $scene = 'scene.json',
-    Str $image? is copy,
+    Str $image = $scene.IO.basename.subst(/ [ \. <-[ \. ]>* ]? $ /, '.ppm'),
     Int :$width,
     Int :$height,
     Bool :$quiet = False,
     Bool :$verbose = False,
     Bool :$preview = !$quiet,
 ) {
-    $image //= 
-        $scene.IO.basename ~~ /^ (.*) \. .*? $/ ??
-        "$0.ppm" !!
-        'scene.ppm';
-    
     Pray::render(
         $scene,
         $image,
