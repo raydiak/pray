@@ -20,6 +20,8 @@ has Pray::Geometry::Vector3D $.position;
 has Pray::Geometry::Vector3D $.scale;
 has Pray::Geometry::Vector3D $.rotate;
 
+has $.max_radius = $!scale ?? $!scale.length !! sqrt(3);
+
 method _build_transform (
     Bool :$position = True,
     Bool :$scale_inv = False
@@ -96,8 +98,17 @@ method ray_intersection (
     ) if $transform;
     
     # intersection and culling
-    my @return = self._ray_intersection($ray);
+    state %position_bound;
+    my $bound := %position_bound{
+        "{$ray.position.x} {$ray.position.y} {$ray.position.z}"
+    };
+    $bound //= atan($!max_radius / $ray.position.length);
+    my @return;
+    @return = self._ray_intersection($ray)
+        if pi - $ray.position.angle($ray.direction) <= $bound;
+
     if $inside { $_[1] .= reverse for @return };
+
     @return .= grep: {
         $_[2] >= 0 &&
         ( !$segment || $_[2] <= 1 ) &&
