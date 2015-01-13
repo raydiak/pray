@@ -5,6 +5,8 @@ class Pray::Geometry::Sphere is Pray::Geometry::Object;
 use Pray::Geometry::Vector3D;
 use Pray::Geometry::Ray;
 
+has $.max_radius = 1;
+
 method _contains_point (Pray::Geometry::Vector3D $point) {
     return !!($point.length_sqr < 1);
 }

@@ -20,7 +20,7 @@ has Pray::Geometry::Vector3D $.position;
 has Pray::Geometry::Vector3D $.scale;
 has Pray::Geometry::Vector3D $.rotate;
 
-has $.max_radius = $!scale ?? $!scale.length !! sqrt(3);
+has $.max_radius = sqrt(3);
 
 method _build_transform (
     Bool :$position = True,
@@ -102,7 +102,11 @@ method ray_intersection (
     my $bound := %position_bound{
         "{$ray.position.x} {$ray.position.y} {$ray.position.z}"
     };
-    $bound //= atan($!max_radius / $ray.position.length);
+    # http://en.wikipedia.org/wiki/Angular_diameter
+    $bound //= do {
+        my $dist = $ray.position.length;
+        $dist > $!max_radius ?? asin($!max_radius / $dist) !! pi;
+    };
     my @return;
     @return = self._ray_intersection($ray)
         if pi - $ray.position.angle($ray.direction) <= $bound;

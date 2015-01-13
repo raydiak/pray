@@ -5,6 +5,8 @@ class Pray::Geometry::Cylinder is Pray::Geometry::Object;
 use Pray::Geometry::Vector3D;
 use Pray::Geometry::Ray;
 
+has $.max_radius = sqrt(2);
+
 method _contains_point (Pray::Geometry::Vector3D $point) {
     !!( $point.z.abs < 1 && $point.x**2+$point.y**2 < 1 )
 }
