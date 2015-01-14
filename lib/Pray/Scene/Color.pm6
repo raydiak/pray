@@ -37,16 +37,16 @@ multi method scale (Pray::Scene::Color $c) {
 
 method clip_low {
     rgb(
-        ([max] $!r, 0),
-        ([max] $!g, 0),
-        ([max] $!b, 0),
+        ($!r, 0).max,
+        ($!g, 0).max,
+        ($!b, 0).max,
     )
 }
 
 method clip_high {
-    my %channels = :r(.r), :g(.g), :b(.b) given self;
+    my %channels = :$!r, :$!g, :$!b;
     
-    my $max = [max] %channels.values;
+    my $max = %channels.values.max;
     return self.clone if $max <= 1;
 
     my $value = [+] %channels.values;
@@ -61,7 +61,7 @@ method clip_high {
         when {$_ < 1} { $_ += (1-$_) * $fill_ratio }
     }
 
-    return rgb(
+    rgb(
         %channels<r>,
         %channels<g>,
         %channels<b>
@@ -72,8 +72,8 @@ method clip {
     self.clip_low.clip_high
 }
 
-method is_black () { $!r & $!g & $!b <= 0 }
+method is_black () { $!r <= 0 && $!g <= 0 && $!b <= 0 }
 
-method is_white () { $!r & $!g & $!b >= 1 }
+method is_white () { $!r >= 1 && $!g >= 1 && $!b >= 1 }
 
 method brightness () { ($!r + $!g + $!b) / 3 }
