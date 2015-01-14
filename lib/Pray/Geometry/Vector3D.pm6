@@ -9,19 +9,21 @@ has $.z = 0;
 
 
 our sub v3d ($x, $y, $z) is export {
-    $?CLASS.new(x => $x, y => $y, z => $z)
+    $?CLASS.bless: :$x, :$y, :$z
 }
 
 
 
-method length_sqr () {
+has $.length_sqr = self._length_sqr;
+method _length_sqr () {
     $!x*$!x + $!y*$!y + $!z*$!z
 }
 
 
 
-method length () {
-    my $return = self.length_sqr;
+has $.length = self._length;
+method _length () {
+    my $return = $!length_sqr;
     !$return || $return == 1 ?? $return !! sqrt $return;
     #self.length_sqr.sqrt
 }
@@ -29,7 +31,7 @@ method length () {
 
 
 method normalize (Numeric $length = 1) {
-    my $current_length_sqr = self.length_sqr;
+    my $current_length_sqr = $!length_sqr;
     
     $current_length_sqr != 0 && $current_length_sqr != $length*$length ??
         self.scale( $length / sqrt($current_length_sqr) )
@@ -42,9 +44,9 @@ method normalize (Numeric $length = 1) {
 
 method add (Pray::Geometry::Vector3D $vector) {
     v3d(
-        $.x + $vector.x,
-        $.y + $vector.y,
-        $.z + $vector.z
+        $!x + $vector.x,
+        $!y + $vector.y,
+        $!z + $vector.z
     )
 }
 
@@ -52,27 +54,27 @@ method add (Pray::Geometry::Vector3D $vector) {
 
 method subtract (Pray::Geometry::Vector3D $vector) {
     v3d(
-        $.x - $vector.x,
-        $.y - $vector.y,
-        $.z - $vector.z
+        $!x - $vector.x,
+        $!y - $vector.y,
+        $!z - $vector.z
     )
 }
 
 
 
 method dot (Pray::Geometry::Vector3D $vector) {
-    $.x * $vector.x +
-    $.y * $vector.y +
-    $.z * $vector.z
+    $!x * $vector.x +
+    $!y * $vector.y +
+    $!z * $vector.z
 }
 
 
 
 method cross (Pray::Geometry::Vector3D $vector) {
     v3d(
-        self.y * $vector.z - self.z * $vector.y,
-        self.z * $vector.x - self.x * $vector.z,
-        self.x * $vector.y - self.y * $vector.x
+        $!y * $vector.z - $!z * $vector.y,
+        $!z * $vector.x - $!x * $vector.z,
+        $!x * $vector.y - $!y * $vector.x
     )
 }
 
@@ -86,7 +88,7 @@ method angle (Pray::Geometry::Vector3D $vector) {
 
 method angle_cos (Pray::Geometry::Vector3D $vector) {
     self.dot($vector) /
-    ( self.length * $vector.length )
+    ( $!length * $vector.length )
 }
 
 
@@ -98,9 +100,9 @@ multi method scale (
     $center ??
         self.subtract($center).scale($scale).add($center)
     !! v3d(
-        $.x * $scale,
-        $.y * $scale,
-        $.z * $scale
+        $!x * $scale,
+        $!y * $scale,
+        $!z * $scale
     )
 }
 
@@ -113,9 +115,9 @@ multi method scale (
     $center ??
         self.subtract($center).scale($scale).add($center)
     !! v3d(
-        $.x * $scale.x,
-        $.y * $scale.y,
-        $.z * $scale.z
+        $!x * $scale.x,
+        $!y * $scale.y,
+        $!z * $scale.z
     )
 }
 

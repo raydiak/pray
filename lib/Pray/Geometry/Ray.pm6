@@ -6,32 +6,31 @@ has Pray::Geometry::Vector3D $.position;
 has Pray::Geometry::Vector3D $.direction;
 
 method normalize () {
-    self.new(
-        position => $.position,
-        direction => $.direction.normalize
+    $?CLASS.bless(
+        :$!position,
+        direction => $!direction.normalize
     )
 }
 
 #`[[[
 method scale ($argument, :$center) {
-    self.new(
+    $?CLASS.bless(
         :position($center ??
-            self.position.scale($argument, :$center)
+            $!position.scale($argument, :$center)
         !!
-            self.position.scale($argument)
+            $!position.scale($argument)
         ),
-        :direction(self.direction.scale($argument))
+        :direction($!direction.scale($argument))
     )
 }
 
 method rotate (*@arguments, :$center) {
-    self.new(
+    $?CLASS.bless(
         :position($center ??
-            self.position.rotate(|@arguments, :$center)
-        !!
-            self.position.rotate(|@arguments)
+            $!position.rotate(|@arguments, :$center) !!
+            $!position.rotate(|@arguments)
         ),
-        :direction(self.direction.rotate(|@arguments))
+        :direction($!direction.rotate(|@arguments))
     )
 }
 ]]]

@@ -17,19 +17,17 @@ class Pray::Scene::Camera {
     has Pray::Geometry::Vector3D $.position = v3d(3,-7,3);
     has Pray::Geometry::Vector3D $.object = v3d(0,0,0);
     has Real $.roll = 0;
-    has Real $.roll_radians = self.roll * pi / 180;
+    has Real $.roll_radians = $!roll * pi / 180;
 
     has Real $.fov = 35;
-    has Real $.fov_radians = self.fov * pi / 180;
+    has Real $.fov_radians = $!fov * pi / 180;
     has Real $.plane_size =
-        sin(self.fov_radians / 2) * 2 /
-        cos(self.fov_radians / 2);
+        sin($!fov_radians / 2) * 2 /
+        cos($!fov_radians / 2);
 
     has Real $.exposure = 1;
 
     has Pray::Scene::Camera::Anaglyph $.anaglyph;
-
-    has $.vectors = self._build_vectors;
 
     has %!containers;
 
@@ -46,18 +44,18 @@ class Pray::Scene::Camera {
         }
     };
 
-    method polar () {
-        my ($x, $y, $z) = .x, .y, .z given $.object.subtract($.position);
-        my $theta = atan2($y, $x);
-        my $phi = atan2($z, sqrt($x*$x + $y*$y));
-        return $theta, $phi;
+    has @.polar = do {
+        my ($x, $y, $z) = .x, .y, .z given $!object.subtract($!position);
+        atan2($y, $x), atan2($z, sqrt($x*$x + $y*$y));
     }
+
+    has $.vectors = self._build_vectors;
 
     method _build_vectors () {
         my $quarter_circle = pi / 2;
 
-        my ($theta, $phi) = self.polar;
-        my $roll_radians = self.roll_radians;
+        my ($theta, $phi) = @!polar;
+        my $roll_radians = $!roll_radians;
 
         my $view_c = v3d(
             cos($theta) * cos($phi),
@@ -82,7 +80,7 @@ class Pray::Scene::Camera {
 
     method containers ($scene) {
         %!containers{$scene.WHICH} //=
-            $scene.objects.grep({ .geometry.contains_point(self.position) }) //
+            $scene.objects.grep({ .geometry.contains_point($!position) }) //
             []
     }
 
@@ -127,7 +125,7 @@ class Pray::Scene::Camera {
             (($h-1)/2 - $y) * $_,
             $scene,
             :$recurse
-        ) given $.plane_size / [min] $w, $h
+        ) given $!plane_size / [min] $w, $h
     }
 
 }

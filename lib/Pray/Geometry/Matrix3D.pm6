@@ -75,7 +75,7 @@ method rotate ($axis where enum <x y z>, $angle) {
 }
 
 method invert () {
-    my $i = self.values;
+    my $i = $!values;
 
     my $s = [
         $i[0][0] * $i[1][1] - $i[1][0] * $i[0][1],
@@ -133,11 +133,11 @@ method invert () {
 
 method multiply (Pray::Geometry::Matrix3D $m) {
     my @values;
-    my ($dim0, $dim1) = $m.values.end, self.values[0].end;
+    my ($dim0, $dim1) = $m.values.end, $!values[0].end;
     for 0..$dim0 -> $i {
         @values[$i] = [];
         for 0..$dim1 -> $j {
-            my @a_vals = self.values.map({.[$j]});
+            my @a_vals = $!values.map({.[$j]});
             my @b_vals = $m.values[$i][];
             my $value = [+]( @a_vals »*« @b_vals );
             @values[$i][$j] = $value;
