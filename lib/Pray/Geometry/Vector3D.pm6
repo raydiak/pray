@@ -14,24 +14,25 @@ our sub v3d ($x, $y, $z) is export {
 
 
 
-has $.length_sqr = self._length_sqr;
-method _length_sqr () {
-    $!x*$!x + $!y*$!y + $!z*$!z
+has $!length_sqr;
+method length_sqr () {
+    $!length_sqr //= $!x*$!x + $!y*$!y + $!z*$!z;
 }
 
 
 
-has $.length = self._length;
-method _length () {
-    my $return = $!length_sqr;
-    !$return || $return == 1 ?? $return !! sqrt $return;
-    #self.length_sqr.sqrt
+has $!length;
+method length () {
+    $!length //= do {
+        my $sqr = self.length_sqr;
+        !$sqr || $sqr == 1 ?? $sqr !! sqrt $sqr;
+    };
 }
 
 
 
 method normalize (Numeric $length = 1) {
-    my $current_length_sqr = $!length_sqr;
+    my $current_length_sqr = self.length_sqr;
     
     $current_length_sqr != 0 && $current_length_sqr != $length*$length ??
         self.scale( $length / sqrt($current_length_sqr) )
@@ -88,7 +89,7 @@ method angle (Pray::Geometry::Vector3D $vector) {
 
 method angle_cos (Pray::Geometry::Vector3D $vector) {
     self.dot($vector) /
-    ( $!length * $vector.length )
+    ( self.length * $vector.length )
 }
 
 
