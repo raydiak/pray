@@ -33,6 +33,19 @@ class Pray::Scene::Camera {
 
     has %!containers;
 
+    has @!views = do {
+        if $!anaglyph {
+            (-1, 1).map({ $%(
+                pos => $!position.add( $!vectors[1].scale(
+                    $!anaglyph.separation / 2 * $_
+                ) ),
+                color => $_ < 0 ?? $!anaglyph.left !! $!anaglyph.right,
+            ) });
+        } else {
+            $%(pos => $!position);
+        }
+    };
+
     method polar () {
         my ($x, $y, $z) = .x, .y, .z given $.object.subtract($.position);
         my $theta = atan2($y, $x);
@@ -75,28 +88,13 @@ class Pray::Scene::Camera {
 
     method plane_coord_color (Real $x, Real $y, $scene, Real :$recurse = 16) {
         my $return = black;
-        my @views;
-        
-        if $!anaglyph {
-            @views = -1, 1;
-            for @views {
-                $_ = hash(
-                    pos => $!position.add( $!vectors[1].scale(
-                        $!anaglyph.separation / 2 * $_
-                    ) ),
-                    color => $_ < 0 ?? $!anaglyph.left !! $!anaglyph.right,
-                )
-            };
-        } else {
-            @views[0] = hash(pos => $!position);
-        }
         
         my $dir = $!vectors[0]\
             .add( $!vectors[1].scale($x) )\
             .add( $!vectors[2].scale($y) )\
             .normalize;
         
-        for @views {
+        for @!views {
             my $ray = Pray::Geometry::Ray.new(
                 position => $_<pos>,
                 direction => $dir
@@ -108,7 +106,7 @@ class Pray::Scene::Camera {
                 :containers(self.containers($scene))
             );
 
-            $add = $_<color>.color_scaled.scale($add.brightness) if $_<color>;
+            $add = $add.clip.scale($_<color>.color_scaled) if $_<color>;
 
             $return .= add($add);
         }
