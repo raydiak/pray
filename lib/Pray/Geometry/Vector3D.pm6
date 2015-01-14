@@ -14,6 +14,12 @@ our sub v3d ($x, $y, $z) is export {
 
 
 
+method clone () {
+    self.bless :$!x, :$!y, :$!z;
+}
+
+
+
 method length_sqr () {
     $!x*$!x + $!y*$!y + $!z*$!z
 }
