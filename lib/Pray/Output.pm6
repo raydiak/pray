@@ -113,7 +113,7 @@ method preview () {
         $!preview.substr-rw($i, 1) = preview_char |@( self.get($x, $y) );
     }
     
-    state &clear = $*DISTRO.is-win ?? {run 'cls'} !! {run 'clear'};
+    state &clear = $*DISTRO.is-win ?? {shell 'cls'} !! {run 'clear'};
     clear;
     print $!preview;
 }
