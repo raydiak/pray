@@ -110,10 +110,7 @@ method preview () {
 
         my $i = self.coord_preview_index($x, $y);
 
-        $!preview =
-            $!preview.substr(0, $i) ~
-            preview_char(|@( self.get($x, $y) )) ~
-            $!preview.substr($i+1);
+        $!preview.substr-rw($i, 1) = preview_char |@( self.get($x, $y) );
     }
     
     state &clear = $*DISTRO.is-win ?? {run 'cls'} !! {run 'clear'};
