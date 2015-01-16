@@ -8,37 +8,27 @@ has PInt $.height;
 
 has PInt $.length = $!width * $!height;
 has Buf[uint8] $.buffer = Buf[uint8].new(0 xx $!length * 3);
-has PInt $.preview_reduce = do {
-    my $v = $!width / 80;
-
-    if $v < 1 {
-        $v = 1;
-    } else {
-        my $iv = $v.Int;
-        $iv += ($v != $iv);
-        $v = $iv;
-    }
-
-    $v;
-};
+has PInt $.preview_reduce = ($!width div 80) + ($!width mod 80 > 0);
 has PInt $.preview_width = preview_scale($!width, $!preview_reduce);
 has PInt $.preview_height = preview_scale($!height, $!preview_reduce * 2);
 has Str $.preview = (' ' x $!preview_width xx $!preview_height).join: "\n";
 has @.dirty;
 has $.channel = Channel.new;
-has $.closed = $!channel.closed;
-has $.worker is rw;
+has $.promise;
+method !promise () is rw { $!promise };
 
 method new (|) {
     my $self = callsame;
 
-    $self.worker = Thread.start: {
-        until $self.closed.status !=== Planned {
-            while my @in = $self.channel.poll {
+    $self!promise = start {
+        my $channel = $self.channel;
+        my $closed = $channel.closed;
+        until $closed {
+            while my @in = $channel.poll {
                 $self!set(|@in);
             }
             $self.preview;
-            sleep 1;
+            sleep .25;
         }
     };
 
@@ -66,6 +56,9 @@ method preview_coord_index ($x, $y) {
 }
 
 method write () {
+    $!channel.close;
+    $!promise.result;
+
     my $fh = $!file.IO.open: :w;
     $fh.print: "P3\n$!width $!height\n255\n";
     #$fh.print: $!buffer[$_] ~ ' ' for ^($!length * 3);
@@ -78,16 +71,12 @@ method write () {
         $fh.print: $line;
     }
     $fh.close;
-    $!channel.close;
 }
 
-sub process ($_ is copy) {
-    $_ *= 255;
-    $_ =
-        $_ < 0 ?? 0 !!
-        $_ > 255 ?? 255 !!
-        $_;
-    $_.Int;
+sub process ($_) {
+    $_ <= 0 ?? 0 !!
+    $_ >= 1 ?? 255 !!
+    ($_ * 256).Int;
 }
 
 method set ($x, $y, $r, $g, $b) {
@@ -136,7 +125,6 @@ sub preview_char ($r, $g, $b) {
     constant @chars = ' ', '░', '▒', '▓', '█';
     constant $shades = @chars - 1;
     my $shade = ($r + $g + $b) / 3;
-    say $shade if $shade > 0;
 
     my $char;
     given $shade {
