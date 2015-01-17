@@ -34,7 +34,7 @@ method !init () {
     # this workaround prevents substr-rw from causing string corruption later
     # TODO reduce & report
     # perl6 -MPray::Output -e 'my $o = Pray::Output.new(:width(64), :height(64)); sleep 2; $o.set(56, 56, 1, 1, 1); $o.finish;'
-    $!preview-buffer.substr-rw($!preview-w+4,0) = '';
+    substr-rw($!preview-buffer, $!preview-w+4, 0) = '';
 
     $!promise = start {
         my $closed = $!channel.closed;
@@ -152,7 +152,6 @@ method preview () {
                 if $x %% $!preview-scale-w && $y %% $!preview-scale-h;
         }).unique: :with(&infix:<eqv>), :as(*.[1]);
 
-        #print $!preview-buffer.substr-rw(0) x 0;
         for @dirty -> [$coord, $preview_coord] {
             substr-rw(
                 $!preview-buffer,
