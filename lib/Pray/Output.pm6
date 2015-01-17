@@ -1,38 +1,70 @@
 class Pray::Output;
 
 subset PInt of Int where * > 0;
+subset NNInt of Int where * >= 0;
 
 has Str $.file;
 has PInt $.width;
 has PInt $.height;
+has Bool $.quiet = False;
+has Bool $.preview = !$!quiet;
+has $.preview-pause = .5;
+has $.preview-width = 80;
+has $.preview-dither = 1/3;
 
-has PInt $.length = $!width * $!height;
-has Buf[uint8] $.buffer = Buf[uint8].new(0 xx $!length * 3);
-has PInt $.preview_reduce = ($!width div 80) + ($!width mod 80 > 0);
-has PInt $.preview_width = preview_scale($!width, $!preview_reduce);
-has PInt $.preview_height = preview_scale($!height, $!preview_reduce * 2);
-has Str $.preview = (' ' x $!preview_width xx $!preview_height).join: "\n";
-has @.dirty;
-has $.channel = Channel.new;
-has $.promise;
-method !promise () is rw { $!promise };
+has Buf[uint8] $!buffer = Buf[uint8].new(0 xx $!width * $!height * 3);
+has PInt $!preview-scale-w = preview_scale($!width, $!preview-width - 2);
+has PInt $!preview-scale-h = $!preview-scale-w * 2;
+has PInt $!preview-w = preview_scale($!width, $!preview-scale-w);
+has PInt $!preview-h = preview_scale($!height, $!preview-scale-h);
+has Str $!preview-buffer =
+    "┌{'─' x $!preview-w}┐\n" ~
+    "│{'.' x $!preview-w}│\n" x $!preview-h ~
+    "└{'─' x $!preview-w}┘";
+has @!dirty;
+has $!channel = Channel.new;
+has $!promise;
 
 method new (|) {
-    my $self = callsame;
+    callsame!init;
+}
 
-    $self!promise = start {
-        my $channel = $self.channel;
-        my $closed = $channel.closed;
-        until $closed {
-            while my @in = $channel.poll {
-                $self!set(|@in);
+method !init () {
+
+    # this workaround prevents substr-rw from causing string corruption later
+    # TODO reduce & report
+    # perl6 -MPray::Output -e 'my $o = Pray::Output.new(:width(64), :height(64)); sleep 2; $o.set(56, 56, 1, 1, 1); $o.finish;'
+    $!preview-buffer.substr-rw($!preview-w+4,0) = '';
+
+    $!promise = start {
+        my $closed = $!channel.closed;
+
+        my $seconds = now;
+        if $!preview {
+            until $closed {
+                while my @in = $!channel.poll {
+                    self!set(|@in);
+                }
+                self.preview;
+                sleep $!preview-pause if $!preview-pause;
             }
-            $self.preview;
-            sleep .25;
+            print "\n";
+        } else {
+            until $closed {
+                try { self!set: $!channel.receive }
+            }
+        }
+        $seconds = now - $seconds;
+
+        unless $!quiet {
+            my $pixels = $!width * $!height;
+            my $time = seconds_to_time($seconds);
+            printf "$pixels pixels / $time = %.2f pixels/sec\n",
+                $pixels / $seconds;
         }
     };
 
-    $self;
+    self;
 }
 
 sub preview_scale ($v, $reduction) {
@@ -42,8 +74,8 @@ sub preview_scale ($v, $reduction) {
 method coord_index ($x, $y) { ($y * $!width + $x) * 3 }
 
 method coord_preview ($x, $y) {
-    preview_scale($x, $!preview_reduce),
-    preview_scale($y, $!preview_reduce * 2);
+    preview_scale($x, $!preview-scale-w),
+    preview_scale($y, $!preview-scale-h);
 }
 
 method coord_preview_index ($x is copy, $y is copy) {
@@ -52,16 +84,19 @@ method coord_preview_index ($x is copy, $y is copy) {
 }
 
 method preview_coord_index ($x, $y) {
-    $y * ($!width + 1) + $x;
+    ($y + 1) * ($!preview-w + 3) + $x + 1;
+}
+
+method finish () {
+    $!channel.close;
+    $!promise.result;
 }
 
 method write () {
-    $!channel.close;
-    $!promise.result;
+    self.finish unless $!promise;
 
     my $fh = $!file.IO.open: :w;
     $fh.print: "P3\n$!width $!height\n255\n";
-    #$fh.print: $!buffer[$_] ~ ' ' for ^($!length * 3);
     my $len = $!width * 3;
     for ^$!height -> $row {
         my $i = $row * $len;
@@ -76,52 +111,68 @@ method write () {
 sub process ($_) {
     $_ <= 0 ?? 0 !!
     $_ >= 1 ?? 255 !!
-    ($_ * 256).Int;
+    ($_ * 255).Int;
 }
 
-method set ($x, $y, $r, $g, $b) {
+method set (NNInt $x, NNInt $y, $r, $g, $b) {
+    die "($x, $y) is outside of (0..{$!width-1}, 0..{$!height-1})"
+        unless 0 <= $x < $!width &&
+            0 <= $y < $!height;
+
     $!channel.send: [$x, $y, $r, $g, $b];
+
+    True;
 }
 
 method !set ($x, $y, $r, $g, $b) {
     my $i = self.coord_index($x, $y);
 
-    $!buffer[$i++] = process $r;
-    $!buffer[$i++] = process $g;
-    $!buffer[$i]   = process $b;
+    $!buffer[$i]   = process $r;
+    $!buffer[$i+1] = process $g;
+    $!buffer[$i+2] = process $b;
 
     @!dirty.push: $x, $y;
 
     True;
 }
 
-method get ($x, $y) {
+method !get ($x, $y) {
     my $i = self.coord_index($x, $y);
-    $!buffer[$i++]/255, $!buffer[$i++]/255, $!buffer[$i]/255;
+    $!buffer[$i], $!buffer[$i+1], $!buffer[$i+2];
+}
+
+method get ($x, $y) {
+    self!get($x, $y).map: */255;
 }
 
 method preview () {
-    while @!dirty {
-        my ($x, $y) = @!dirty.splice(0, 2);
+    if @!dirty {
+        my @dirty = @!dirty.map({
+            [[$^x, $^y], self.coord_preview($x,$y).item]
+                if $x %% $!preview-scale-w && $y %% $!preview-scale-h;
+        }).unique: :with(&infix:<eqv>), :as(*.[1]);
 
-        next unless
-            $x %% $!preview_reduce &&
-            $y %% ($!preview_reduce * 2);
+        #print $!preview-buffer.substr-rw(0) x 0;
+        for @dirty -> [$coord, $preview_coord] {
+            substr-rw(
+                $!preview-buffer,
+                self.preview_coord_index(|$preview_coord), 1) =
+                self.preview_char(|@( self!get(|$coord) )
+            );
+        }
 
-        my $i = self.coord_preview_index($x, $y);
-
-        $!preview.substr-rw($i, 1) = preview_char |@( self.get($x, $y) );
+        @!dirty = ();
     }
     
     state &clear = $*DISTRO.is-win ?? {shell 'cls'} !! {run 'clear'};
     clear;
-    print $!preview;
+    print $!preview-buffer;
 }
 
-sub preview_char ($r, $g, $b) {
+method preview_char ($r, $g, $b) {
     constant @chars = ' ', '░', '▒', '▓', '█';
     constant $shades = @chars - 1;
-    my $shade = ($r + $g + $b) / 3;
+    my $shade = ($r + $g + $b) / 765;
 
     my $char;
     given $shade {
@@ -129,7 +180,7 @@ sub preview_char ($r, $g, $b) {
         when $_ <= 0 { $char = @chars[0] }
         default {
             my $i = $shade * $shades;
-            $i += rand - .5; # dithering
+            $i += (rand - .5) * $!preview-dither if $!preview-dither;
             $i .= Int;
             $i = [max] 1, [min] $shades, $i+1;
             $char = @chars[$i];
@@ -137,6 +188,31 @@ sub preview_char ($r, $g, $b) {
     }
     
     $char;
+}
+
+sub seconds_to_time ($seconds is copy) {
+    constant @time_units = (
+        [    86400,    'day',            'dy'    ],
+        [    3600,    'hour',            'hr'    ],
+        [    60,        'minute',        'min'    ],
+        [    1,        'second',        'sec'    ],
+        [    1/1000,    'millisecond',    'ms'    ]
+    );
+
+    my $return = '';
+    for @time_units {
+        my $last = ($_ === @time_units[*-1]);
+        next unless $_[0] < $seconds || $last;
+        my $value = $seconds / $_[0];
+        $value = $last ?? +sprintf('%.2f', $value) !! $value.Int;
+        next unless $value;
+        $seconds -= $value * $_[0];
+        my $plural = $value == 1 || $_[2] ~~ /'s' $/ ?? '' !! 's';
+        $return ~= ' ' if $return.chars;
+        $return ~= "$value $_[2]$plural";
+    }
+
+    return $return;
 }
 
 
