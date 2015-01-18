@@ -8,6 +8,7 @@ has PInt $.width;
 has PInt $.height;
 has Bool $.quiet = False;
 has Bool $.preview = !$!quiet;
+has Bool $.sync = False;
 has $.preview-pause = .5;
 has $.preview-width = 80;
 has $.preview-dither = 1/3;
@@ -22,8 +23,12 @@ has Str $!preview-buffer =
     "│{'.' x $!preview-w}│\n" x $!preview-h ~
     "└{'─' x $!preview-w}┘";
 has @!dirty;
-has $!channel = Channel.new;
+has $!channel = $!sync ?? Any !! Channel.new;
 has $!promise;
+has $!next-preview = 0;
+has $!begin-time;
+has $.count = 0;
+has $.finished = False;
 
 method new (|) {
     callsame!init;
@@ -36,33 +41,30 @@ method !init () {
     # perl6 -MPray::Output -e 'my $o = Pray::Output.new(:width(64), :height(64)); sleep 2; $o.set(56, 56, 1, 1, 1); $o.finish;'
     substr-rw($!preview-buffer, $!preview-w+4, 0) = '';
 
-    $!promise = start {
-        my $closed = $!channel.closed;
+    if $!sync {
+        self.preview if $!preview;
+    } else {
+        $!promise = start {
+            my $closed = $!channel.closed;
 
-        my $seconds = now;
-        if $!preview {
-            until $closed {
-                while my @in = $!channel.poll {
-                    self!set(|@in);
+            if $!preview {
+                until $closed {
+                    while my @in = $!channel.poll {
+                        self!set(|@in);
+                    }
+                    my $now = now;
+                    sleep $!next-preview - $now if $!next-preview > $now;
+                    self.preview;
                 }
-                self.preview;
-                sleep $!preview-pause if $!preview-pause;
+            } else {
+                until $closed {
+                    try { self!set: $!channel.receive }
+                }
             }
-            print "\n";
-        } else {
-            until $closed {
-                try { self!set: $!channel.receive }
-            }
-        }
-        $seconds = now - $seconds;
 
-        unless $!quiet {
-            my $pixels = $!width * $!height;
-            my $time = seconds_to_time($seconds);
-            printf "$pixels pixels / $time = %.2f pixels/sec\n",
-                $pixels / $seconds;
-        }
-    };
+            True;
+        };
+    }
 
     self;
 }
@@ -88,12 +90,33 @@ method preview_coord_index ($x, $y) {
 }
 
 method finish () {
-    $!channel.close;
-    $!promise.result;
+    return True if $!finished;
+
+    my $seconds = now - $!begin-time;
+
+    unless $!sync {
+        $!channel.close;
+        $!promise.result;
+    }
+
+    if $!preview {
+        self.preview;
+        print "\n";
+    }
+
+    unless $!quiet {
+        my $time = seconds_to_time($seconds);
+        printf "$!count pixels / $time = %.2f pixels/sec\n",
+            $!count / $seconds;
+    }
+
+    $!finished = True;
+
+    True;
 }
 
 method write () {
-    self.finish unless $!promise;
+    self.finish;
 
     my $fh = $!file.IO.open: :w;
     $fh.print: "P3\n$!width $!height\n255\n";
@@ -115,11 +138,18 @@ sub process ($_) {
 }
 
 method set (NNInt $x, NNInt $y, $r, $g, $b) {
-    die "($x, $y) is outside of (0..{$!width-1}, 0..{$!height-1})"
-        unless 0 <= $x < $!width &&
-            0 <= $y < $!height;
+    $!begin-time //= now;
 
-    $!channel.send: [$x, $y, $r, $g, $b];
+    die "($x, $y) is outside of (0..{$!width-1}, 0..{$!height-1})"
+        unless 0 <= $x < $!width && 0 <= $y < $!height;
+
+    if $!sync {
+        self!set($x, $y, $r, $g, $b)
+    } else {
+        $!channel.send: [$x, $y, $r, $g, $b];
+    }
+
+    $!count++;
 
     True;
 }
@@ -131,7 +161,10 @@ method !set ($x, $y, $r, $g, $b) {
     $!buffer[$i+1] = process $g;
     $!buffer[$i+2] = process $b;
 
-    @!dirty.push: $x, $y;
+    if $!preview {
+        @!dirty.push: $x, $y;
+        self.preview if $!sync && $!next-preview <= now;
+    }
 
     True;
 }
@@ -166,6 +199,10 @@ method preview () {
     state &clear = $*DISTRO.is-win ?? {shell 'cls'} !! {run 'clear'};
     clear;
     print $!preview-buffer;
+
+    $!next-preview = now + $!preview-pause;
+
+    True;
 }
 
 method preview_char ($r, $g, $b) {
