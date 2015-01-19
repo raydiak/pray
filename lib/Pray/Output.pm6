@@ -9,13 +9,18 @@ has PInt $.height;
 has Bool $.quiet = False;
 has Bool $.preview = !$!quiet;
 has Bool $.sync = False;
-has $.preview-interval = 5;
+has $.preview-interval = 1;
 has $.preview-width = 80;
-has $.preview-dither = 1/3;
+has $.preview-dither = 0;
 
-has Buf[uint8] $!buffer = Buf[uint8].new();
+sub preview_scale ($v, $reduction) {
+    ($v div $reduction) + !($v %% $reduction);
+}
+
+has $!buffer = Buf[uint8].new();
 has PInt $!preview-scale-w = preview_scale($!width, $!preview-width - 2);
 has PInt $!preview-scale-h = $!preview-scale-w * 2;
+has PInt $!preview-scale-area = $!preview-scale-w * $!preview-scale-h;
 has PInt $!preview-w = preview_scale($!width, $!preview-scale-w);
 has PInt $!preview-h = preview_scale($!height, $!preview-scale-h);
 has Str $!preview-string =
@@ -29,6 +34,10 @@ has $!next-preview = 0;
 has $!begin-time = now;
 has $.count = 0;
 has $.finished = False;
+has $!preview-buffer = Buf[uint32].new();
+has @!preview-chars = ' ', '░', '▒', '▓', '█';
+has $!preview-shades = @!preview-chars - 1;
+has &!clear = $*DISTRO.is-win ?? -> {shell 'cls'} !! -> {run 'clear'};
 
 method new (|) {
     callsame!init;
@@ -67,10 +76,6 @@ method !init () {
     }
 
     self;
-}
-
-sub preview_scale ($v, $reduction) {
-    ($v div $reduction) + !($v %% $reduction);
 }
 
 method coord_index ($x, $y) { ($y * $!width + $x) * 3 }
@@ -131,12 +136,6 @@ method write () {
     $fh.close;
 }
 
-sub process ($_) {
-    $_ <= 0 ?? 0 !!
-    $_ >= 1 ?? 255 !!
-    ($_ * 255).Int;
-}
-
 method set (NNInt $x, NNInt $y, $r, $g, $b) {
     die "($x, $y) is outside of (0..{$!width-1}, 0..{$!height-1})"
         unless 0 <= $x < $!width && 0 <= $y < $!height;
@@ -150,17 +149,33 @@ method set (NNInt $x, NNInt $y, $r, $g, $b) {
     True;
 }
 
-method !set ($x, $y, $r, $g, $b) {
+sub process ($_) {
+    $_ <= 0 ?? 0 !!
+    $_ >= 1 ?? 255 !!
+    ($_ * 255).Int;
+}
+
+method !set ($x, $y, $r is copy, $g is copy, $b is copy) {
     my $i = self.coord_index($x, $y);
 
-    $!buffer[$i]   = process $r;
-    $!buffer[$i+1] = process $g;
-    $!buffer[$i+2] = process $b;
+    $r = process $r;
+    $g = process $g;
+    $b = process $b;
+
+    my $v =
+        ($r - $!buffer[$i]) +
+        ($g - $!buffer[$i+1]) +
+        ($b - $!buffer[$i+2])
+        if $!preview;
+
+    $!buffer[$i] = $r;
+    $!buffer[$i+1] = $g;
+    $!buffer[$i+2] = $b;
 
     $!count++;
 
     if $!preview {
-        @!dirty.push: $x, $y;
+        @!dirty.push: [$x, $y, $v];
         self.preview if $!sync && $!next-preview <= now;
     }
 
@@ -178,21 +193,24 @@ method get ($x, $y) {
 
 method preview () {
     if @!dirty {
-        my @dirty = @!dirty.map(-> $x, $y {
-            self.coord_preview($x,$y).item
-                if $x %% $!preview-scale-w && $y %% $!preview-scale-h;
-        }).unique: :with(&infix:<eqv>);
+        my @dirty;
+        for @!dirty -> $x, $y, $v {
+            my ($px, $py) = self.coord_preview($x,$y);
+            my $i = $!preview-w * $py + $px;
+            $!preview-buffer[$i] = $!preview-buffer[$i] + $v;
+            @dirty.push: [$px, $py];
+        };
+        @dirty .= unique: :with(&infix:<eqv>);
 
         for @dirty -> [$x, $y] {
             self.update_preview($x, $y);
         }
 
         @!dirty = ();
+
+        &!clear();
+        print $!preview-string;
     }
-    
-    state &clear = $*DISTRO.is-win ?? {shell 'cls'} !! {run 'clear'};
-    clear;
-    print $!preview-string;
 
     $!next-preview = now + $!preview-interval;
 
@@ -200,65 +218,37 @@ method preview () {
 }
 
 method update_preview ($x, $y) {
-    my $x-start = $x * $!preview-scale-w;
-    my $y-start = $y * $!preview-scale-h;
-    #x`[[[
-    substr-rw( $!preview-string,
-        self.preview_coord_index($x, $y), 1 ) =
-        self.preview_char(|@( self!get($x-start, $y-start) ));
-    return True;
-    #]]]
-    my $x-stop = [min] $x-start + $!preview-scale-w - 1, $!width - 1;
-    my $y-stop = [min] $y-start + $!preview-scale-h - 1, $!height - 1;
-    my ($r, $g, $b) = 0, 0, 0;
-    for $y-start..$y-stop -> $pixel-y {
-        for $x-start..$x-stop -> $pixel-x {
-            my ($pr, $pg, $pb) = self!get($pixel-x, $pixel-y);
-            $r += $pr;
-            $g += $pg;
-            $b += $pb;
-        }
-    }
-    my $div = (($x-stop - $x-start + 1) * ($y-stop - $y-start + 1));
-    $r /= $div;
-    $g /= $div;
-    $b /= $div;
-    substr-rw( $!preview-string,
-        self.preview_coord_index($x, $y), 1 ) =
-        self.preview_char($r, $g, $b);
+    substr-rw( $!preview-string, self.preview_coord_index($x, $y), 1 ) =
+        self.preview_char:
+            $!preview-buffer[$!preview-w * $y + $x] / $!preview-scale-area;
 
     True;
 }
 
-method preview_char ($r, $g, $b) {
-    constant @chars = ' ', '░', '▒', '▓', '█';
-    constant $shades = @chars - 1;
-    my $shade = ($r + $g + $b) / 765;
+method preview_char ($shade) {
+    my @chars := @!preview-chars;
+    my $shades := $!preview-shades;
 
-    my $char;
-    given $shade {
-        when $_ >= 1 { $char = @chars[*-1] }
-        when $_ <= 0 { $char = @chars[0] }
-        default {
-            my $i = $shade * $shades;
-            $i += (rand - .5) * $!preview-dither if $!preview-dither;
-            $i .= Int;
-            $i = [max] 1, [min] $shades, $i+1;
-            $char = @chars[$i];
-        }
-    }
-    
-    $char;
+    $shade >= 765 ?? @chars[*-1] !!
+    $shade <= 0 ?? @chars[0] !!
+    do {
+        my $i = $shade * $shades / 765;
+        $i += (rand - .5) * $!preview-dither if $!preview-dither;
+        $i .= Int;
+        $i = [max] 1, [min] $shades, $i+1;
+        @chars[$i];
+    };
 }
 
+my @time_units = (
+    [    86400,    'day',            'dy'    ],
+    [    3600,    'hour',            'hr'    ],
+    [    60,        'minute',        'min'    ],
+    [    1,        'second',        'sec'    ],
+    [    1/1000,    'millisecond',    'ms'    ]
+);
+
 sub seconds_to_time ($seconds is copy) {
-    constant @time_units = (
-        [    86400,    'day',            'dy'    ],
-        [    3600,    'hour',            'hr'    ],
-        [    60,        'minute',        'min'    ],
-        [    1,        'second',        'sec'    ],
-        [    1/1000,    'millisecond',    'ms'    ]
-    );
 
     my $return = '';
     for @time_units {
