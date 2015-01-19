@@ -194,7 +194,7 @@ method get ($x, $y) {
 method preview () {
     if @!dirty {
         my @dirty;
-        for @!dirty -> $x, $y, $v {
+        for @!dirty -> [$x, $y, $v] {
             my ($px, $py) = self.coord_preview($x,$y);
             my $i = $!preview-w * $py + $px;
             $!preview-buffer[$i] = $!preview-buffer[$i] + $v;
