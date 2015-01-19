@@ -18,7 +18,7 @@ has PInt $!preview-scale-w = preview_scale($!width, $!preview-width - 2);
 has PInt $!preview-scale-h = $!preview-scale-w * 2;
 has PInt $!preview-w = preview_scale($!width, $!preview-scale-w);
 has PInt $!preview-h = preview_scale($!height, $!preview-scale-h);
-has Str $!preview-buffer =
+has Str $!preview-string =
     "┌{'─' x $!preview-w}┐\n" ~
     "│{'.' x $!preview-w}│\n" x $!preview-h ~
     "└{'─' x $!preview-w}┘";
@@ -39,7 +39,7 @@ method !init () {
     # this workaround prevents substr-rw from causing string corruption later
     # TODO reduce & report
     # perl6 -MPray::Output -e 'my $o = Pray::Output.new(:width(64), :height(64)); sleep 2; $o.set(56, 56, 1, 1, 1); $o.finish;'
-    substr-rw($!preview-buffer, $!preview-w+4, 0) = '';
+    substr-rw($!preview-string, $!preview-w+4, 0) = '';
 
     if $!sync {
         self.preview if $!preview;
@@ -192,7 +192,7 @@ method preview () {
     
     state &clear = $*DISTRO.is-win ?? {shell 'cls'} !! {run 'clear'};
     clear;
-    print $!preview-buffer;
+    print $!preview-string;
 
     $!next-preview = now + $!preview-interval;
 
@@ -203,7 +203,7 @@ method update_preview ($x, $y) {
     my $x-start = $x * $!preview-scale-w;
     my $y-start = $y * $!preview-scale-h;
     #x`[[[
-    substr-rw( $!preview-buffer,
+    substr-rw( $!preview-string,
         self.preview_coord_index($x, $y), 1 ) =
         self.preview_char(|@( self!get($x-start, $y-start) ));
     return True;
@@ -223,7 +223,7 @@ method update_preview ($x, $y) {
     $r /= $div;
     $g /= $div;
     $b /= $div;
-    substr-rw( $!preview-buffer,
+    substr-rw( $!preview-string,
         self.preview_coord_index($x, $y), 1 ) =
         self.preview_char($r, $g, $b);
 
