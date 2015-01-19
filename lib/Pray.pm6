@@ -27,7 +27,8 @@ our sub render (
         :file($out_file),
         :$width, :$height,
         :$preview,
-        :$quiet;
+        :$quiet,
+        :sync;
 
     for ^$height -> $y {
         for ^$width -> $x {

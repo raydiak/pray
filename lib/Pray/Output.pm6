@@ -9,11 +9,11 @@ has PInt $.height;
 has Bool $.quiet = False;
 has Bool $.preview = !$!quiet;
 has Bool $.sync = False;
-has $.preview-pause = .5;
+has $.preview-interval = 5;
 has $.preview-width = 80;
 has $.preview-dither = 1/3;
 
-has Buf[uint8] $!buffer = Buf[uint8].new(0 xx $!width * $!height * 3);
+has Buf[uint8] $!buffer = Buf[uint8].new();
 has PInt $!preview-scale-w = preview_scale($!width, $!preview-width - 2);
 has PInt $!preview-scale-h = $!preview-scale-w * 2;
 has PInt $!preview-w = preview_scale($!width, $!preview-scale-w);
@@ -26,7 +26,7 @@ has @!dirty;
 has $!channel = $!sync ?? Any !! Channel.new;
 has $!promise;
 has $!next-preview = 0;
-has $!begin-time;
+has $!begin-time = now;
 has $.count = 0;
 has $.finished = False;
 
@@ -76,8 +76,8 @@ sub preview_scale ($v, $reduction) {
 method coord_index ($x, $y) { ($y * $!width + $x) * 3 }
 
 method coord_preview ($x, $y) {
-    preview_scale($x, $!preview-scale-w),
-    preview_scale($y, $!preview-scale-h);
+    $x div $!preview-scale-w,
+    $y div $!preview-scale-h;
 }
 
 method coord_preview_index ($x is copy, $y is copy) {
@@ -138,8 +138,6 @@ sub process ($_) {
 }
 
 method set (NNInt $x, NNInt $y, $r, $g, $b) {
-    $!begin-time //= now;
-
     die "($x, $y) is outside of (0..{$!width-1}, 0..{$!height-1})"
         unless 0 <= $x < $!width && 0 <= $y < $!height;
 
@@ -148,8 +146,6 @@ method set (NNInt $x, NNInt $y, $r, $g, $b) {
     } else {
         $!channel.send: [$x, $y, $r, $g, $b];
     }
-
-    $!count++;
 
     True;
 }
@@ -160,6 +156,8 @@ method !set ($x, $y, $r, $g, $b) {
     $!buffer[$i]   = process $r;
     $!buffer[$i+1] = process $g;
     $!buffer[$i+2] = process $b;
+
+    $!count++;
 
     if $!preview {
         @!dirty.push: $x, $y;
@@ -180,17 +178,13 @@ method get ($x, $y) {
 
 method preview () {
     if @!dirty {
-        my @dirty = @!dirty.map({
-            [[$^x, $^y], self.coord_preview($x,$y).item]
+        my @dirty = @!dirty.map(-> $x, $y {
+            self.coord_preview($x,$y).item
                 if $x %% $!preview-scale-w && $y %% $!preview-scale-h;
-        }).unique: :with(&infix:<eqv>), :as(*.[1]);
+        }).unique: :with(&infix:<eqv>);
 
-        for @dirty -> [$coord, $preview_coord] {
-            substr-rw(
-                $!preview-buffer,
-                self.preview_coord_index(|$preview_coord), 1) =
-                self.preview_char(|@( self!get(|$coord) )
-            );
+        for @dirty -> [$x, $y] {
+            self.update_preview($x, $y);
         }
 
         @!dirty = ();
@@ -200,7 +194,38 @@ method preview () {
     clear;
     print $!preview-buffer;
 
-    $!next-preview = now + $!preview-pause;
+    $!next-preview = now + $!preview-interval;
+
+    True;
+}
+
+method update_preview ($x, $y) {
+    my $x-start = $x * $!preview-scale-w;
+    my $y-start = $y * $!preview-scale-h;
+    #x`[[[
+    substr-rw( $!preview-buffer,
+        self.preview_coord_index($x, $y), 1 ) =
+        self.preview_char(|@( self!get($x-start, $y-start) ));
+    return True;
+    #]]]
+    my $x-stop = [min] $x-start + $!preview-scale-w - 1, $!width - 1;
+    my $y-stop = [min] $y-start + $!preview-scale-h - 1, $!height - 1;
+    my ($r, $g, $b) = 0, 0, 0;
+    for $y-start..$y-stop -> $pixel-y {
+        for $x-start..$x-stop -> $pixel-x {
+            my ($pr, $pg, $pb) = self!get($pixel-x, $pixel-y);
+            $r += $pr;
+            $g += $pg;
+            $b += $pb;
+        }
+    }
+    my $div = (($x-stop - $x-start + 1) * ($y-stop - $y-start + 1));
+    $r /= $div;
+    $g /= $div;
+    $b /= $div;
+    substr-rw( $!preview-buffer,
+        self.preview_coord_index($x, $y), 1 ) =
+        self.preview_char($r, $g, $b);
 
     True;
 }
