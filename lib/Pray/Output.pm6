@@ -28,7 +28,6 @@ has Str $!preview-string =
     "│{'.' x $!preview-w}│\n" x $!preview-h ~
     "└{'─' x $!preview-w}┘";
 has @!dirty;
-has $!channel = $!sync ?? Any !! Channel.new;
 has $!supply = $!sync ?? Any !! Supply.new;
 has $!promise;
 has $!next-preview = 0;
