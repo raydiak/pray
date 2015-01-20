@@ -8,8 +8,7 @@ has PInt $.width;
 has PInt $.height;
 has Bool $.quiet = False;
 has Bool $.preview = !$!quiet;
-has Bool $.sync = False;
-has $.preview-interval = 1;
+has Bool $.sync = True;
 has $.preview-width = 80;
 has $.preview-dither = 0;
 
@@ -20,6 +19,7 @@ sub preview_scale ($v, $reduction) {
 has $!buffer = Buf[uint8].new();
 has PInt $!preview-scale-w = preview_scale($!width, $!preview-width - 2);
 has PInt $!preview-scale-h = $!preview-scale-w * 2;
+has $.preview-every = $!width * $!preview-scale-h;
 has PInt $!preview-scale-area = $!preview-scale-w * $!preview-scale-h;
 has PInt $!preview-w = preview_scale($!width, $!preview-scale-w);
 has PInt $!preview-h = preview_scale($!height, $!preview-scale-h);
@@ -29,6 +29,7 @@ has Str $!preview-string =
     "└{'─' x $!preview-w}┘";
 has @!dirty;
 has $!channel = $!sync ?? Any !! Channel.new;
+has $!supply = $!sync ?? Any !! Supply.new;
 has $!promise;
 has $!next-preview = 0;
 has $!begin-time = now;
@@ -50,29 +51,11 @@ method !init () {
     # perl6 -MPray::Output -e 'my $o = Pray::Output.new(:width(64), :height(64)); sleep 2; $o.set(56, 56, 1, 1, 1); $o.finish;'
     substr-rw($!preview-string, $!preview-w+4, 0) = '';
 
-    if $!sync {
-        self.preview if $!preview;
-    } else {
-        $!promise = start {
-            my $closed = $!channel.closed;
-
-            if $!preview {
-                until $closed {
-                    while my @in = $!channel.poll {
-                        self!set(|@in);
-                    }
-                    my $now = now;
-                    sleep $!next-preview - $now if $!next-preview > $now;
-                    self.preview;
-                }
-            } else {
-                until $closed {
-                    try { self!set: $!channel.receive }
-                }
-            }
-
-            True;
-        };
+    self.preview: :force if $!preview;
+    unless $!sync {
+        $!supply.act: -> $v { self!set(|$v) };
+        $!promise = Promise.new;
+        $!supply.tap: done => { $!promise.keep };
     }
 
     self;
@@ -100,12 +83,12 @@ method finish () {
     my $seconds = now - $!begin-time;
 
     unless $!sync {
-        $!channel.close;
+        $!supply.done;
         $!promise.result;
     }
 
     if $!preview {
-        self.preview;
+        self.preview: :force;
         print "\n";
     }
 
@@ -138,12 +121,12 @@ method write () {
 
 method set (NNInt $x, NNInt $y, $r, $g, $b) {
     die "($x, $y) is outside of (0..{$!width-1}, 0..{$!height-1})"
-        unless 0 <= $x < $!width && 0 <= $y < $!height;
+        unless $x < $!width && $y < $!height;
 
     if $!sync {
-        self!set($x, $y, $r, $g, $b)
+        self!set($x, $y, $r, $g, $b);
     } else {
-        $!channel.send: [$x, $y, $r, $g, $b];
+        start { $!supply.emit: [$x, $y, $r, $g, $b] };
     }
 
     True;
@@ -175,8 +158,12 @@ method !set ($x, $y, $r is copy, $g is copy, $b is copy) {
     $!count++;
 
     if $!preview {
-        @!dirty.push: [$x, $y, $v];
-        self.preview if $!sync && $!next-preview <= now;
+        my ($px, $py) = self.coord_preview($x,$y);
+        my $i = $!preview-w * $py + $px;
+        $!preview-buffer[$i] = $!preview-buffer[$i] + $v;
+        @!dirty.push: [$px, $py];
+
+        self.preview;
     }
 
     True;
@@ -191,18 +178,9 @@ method get ($x, $y) {
     self!get($x, $y).map: */255;
 }
 
-method preview () {
-    if @!dirty {
-        my @dirty;
-        for @!dirty -> [$x, $y, $v] {
-            my ($px, $py) = self.coord_preview($x,$y);
-            my $i = $!preview-w * $py + $px;
-            $!preview-buffer[$i] = $!preview-buffer[$i] + $v;
-            @dirty.push: [$px, $py];
-        };
-        @dirty .= unique: :with(&infix:<eqv>);
-
-        for @dirty -> [$x, $y] {
+method preview (Bool :$force = False) {
+    if @!dirty >= $!preview-every or $force {
+        for @!dirty.unique(:with(&infix:<eqv>)) -> [$x, $y] {
             self.update_preview($x, $y);
         }
 
@@ -211,8 +189,6 @@ method preview () {
         &!clear();
         print $!preview-string;
     }
-
-    $!next-preview = now + $!preview-interval;
 
     True;
 }
