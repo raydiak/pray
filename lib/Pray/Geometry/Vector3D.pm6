@@ -1,5 +1,7 @@
 class Pray::Geometry::Vector3D;
 
+# TODO add some in-place options to reduce creation overhead and gc thrash
+
 use Pray::Geometry::Matrix3D;
 
 has $.x = 0;
