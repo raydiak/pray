@@ -134,10 +134,13 @@ class Pray::Scene::Transparency is Pray::Scene::Lighting {
 
         # refracted ray direction
         my $refract_dir;
+        my $reflect = 0;
 
         if $ratio == 1 { # 1 == no refraction
             $refract_dir = $int.ray.direction;
         } else {
+            # http://en.wikipedia.org/wiki/Snell%27s_law#Vector_form
+
             # angle between boundary surface and incoming ray
             my $cos_theta_1 = $int.direction.dot($int.ray.direction.reverse);
             
@@ -146,13 +149,32 @@ class Pray::Scene::Transparency is Pray::Scene::Lighting {
             
             if $cos_theta_2 >= 0 {
                 $cos_theta_2 .= sqrt;
-                $cos_theta_2 *= -1 if $cos_theta_1 < 0;
+                #$cos_theta_2 *= -1 if $cos_theta_1 < 0;
                 
                 $refract_dir = $int.ray.direction.scale($ratio).add(
-                    $int.direction.scale($ratio*$cos_theta_1 - $cos_theta_2)
+                    #$int.direction.scale($ratio*$cos_theta_1 - $cos_theta_2)
+                    $int.direction.scale:
+                        $ratio * $cos_theta_1 -
+                        $cos_theta_2 * -($cos_theta_1 < 0 || -1)
                 );
-            } # else total internal reflection - add internal reflection and scale the color of the reflected and refracted rays using fresnel equations - call to Reflective somehow?
+
+                # http://en.wikipedia.org/wiki/Fresnel_equations#Power_or_intensity_equations
+                my $refl_pol_1 = (
+                    ($ri_1 * $cos_theta_1 - $ri_2 * $cos_theta_2) /
+                    ($ri_1 * $cos_theta_1 + $ri_2 * $cos_theta_2)
+                ) ** 2;
+                my $refl_pol_2 = (
+                    ($ri_1 * $cos_theta_2 - $ri_2 * $cos_theta_1) /
+                    ($ri_1 * $cos_theta_2 + $ri_2 * $cos_theta_1)
+                ) ** 2;
+                $reflect = ($refl_pol_1 + $refl_pol_2) / 2;
+            } else {
+                # total internal reflection
+                $reflect = 1;
+            }
         }
+
+        my $color = black;
 
         if $refract_dir {
             my $refract_ray = Pray::Geometry::Ray.new(
@@ -166,11 +188,29 @@ class Pray::Scene::Transparency is Pray::Scene::Lighting {
                 :$recurse
             );
             
-            return $refract_color if $int.exiting;
-
-            return $refract_color.scale($.color_scaled);
+            $refract_color .= scale($.color_scaled) unless $int.exiting;
+            $color = $refract_color;
         }
 
-        return black;
+        if $reflect {
+            my $reflect_dir = $int.ray.direction\
+                .reflect($int.direction).scale(-1);
+
+            my $reflect_ray = Pray::Geometry::Ray.new(
+                position => $int.position,
+                direction => $reflect_dir
+            );
+
+            my $reflect_color = $int.scene.ray_color(
+                $reflect_ray,
+                :containers($int.containers),
+                :$recurse
+            );
+
+            $reflect_color .= scale($reflect) unless $reflect == 1;
+            $color = $color.scale(1-$reflect).add($reflect_color);
+        }
+
+        $color;
     }
 }
