@@ -105,7 +105,7 @@ method ray_intersection (
     # http://en.wikipedia.org/wiki/Angular_diameter
     $bound //= do {
         my $dist = $ray.position.length;
-        $dist > $!max_radius ?? asin($!max_radius / $dist) !! pi;
+        $dist > $!max_radius/1.1 ?? asin($!max_radius*1.1 / $dist) !! pi;
     };
     my @return;
     @return = self._ray_intersection($ray)
