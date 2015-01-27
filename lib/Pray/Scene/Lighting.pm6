@@ -149,13 +149,9 @@ class Pray::Scene::Transparency is Pray::Scene::Lighting {
             
             if $cos_theta_2 >= 0 {
                 $cos_theta_2 .= sqrt;
-                #$cos_theta_2 *= -1 if $cos_theta_1 < 0;
                 
                 $refract_dir = $int.ray.direction.scale($ratio).add(
-                    #$int.direction.scale($ratio*$cos_theta_1 - $cos_theta_2)
-                    $int.direction.scale:
-                        $ratio * $cos_theta_1 -
-                        $cos_theta_2 * -($cos_theta_1 < 0 || -1)
+                    $int.direction.scale($ratio*$cos_theta_1 - $cos_theta_2)
                 );
 
                 # http://en.wikipedia.org/wiki/Fresnel_equations#Power_or_intensity_equations
