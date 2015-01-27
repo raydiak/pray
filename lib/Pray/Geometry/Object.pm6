@@ -105,11 +105,13 @@ method ray_intersection (
     # http://en.wikipedia.org/wiki/Angular_diameter
     $bound //= do {
         my $dist = $ray.position.length;
-        $dist > $!max_radius/1.1 ?? asin($!max_radius*1.1 / $dist) !! pi;
+        # "pi -" here prevents having to reverse one of the vectors later
+        # b/c a ray towards the origin has *opposite* position and direction vectors
+        $dist > $!max_radius * 1.1 ?? pi - asin($!max_radius * 1.1 / $dist) !! 0;
     };
     my @return;
     @return = self._ray_intersection($ray)
-        if pi - $ray.position.angle($ray.direction) <= $bound;
+        unless $bound && $bound > $ray.position.angle($ray.direction);
 
     if $inside { $_[1] .= reverse for @return };
 
