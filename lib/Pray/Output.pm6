@@ -1,11 +1,14 @@
 class Pray::Output;
 
+#`[[[
+https://rt.perl.org/Public/Bug/Display.html?id=123700
 subset PInt of Int where * > 0;
 subset NNInt of Int where * >= 0;
+]]]
 
 has Str $.file;
-has PInt $.width;
-has PInt $.height;
+has Int $.width;
+has Int $.height;
 has Bool $.quiet = False;
 has Bool $.preview = !$!quiet;
 has Bool $.sync = True;
@@ -17,12 +20,12 @@ sub preview_scale ($v, $reduction) {
 }
 
 has $!buffer = Buf[uint8].new();
-has PInt $!preview-scale-w = preview_scale($!width, $!preview-width - 2);
-has PInt $!preview-scale-h = $!preview-scale-w * 2;
+has Int $!preview-scale-w = preview_scale($!width, $!preview-width - 2);
+has Int $!preview-scale-h = $!preview-scale-w * 2;
 has $.preview-every = $!width * $!preview-scale-h;
-has PInt $!preview-scale-area = $!preview-scale-w * $!preview-scale-h;
-has PInt $!preview-w = preview_scale($!width, $!preview-scale-w);
-has PInt $!preview-h = preview_scale($!height, $!preview-scale-h);
+has Int $!preview-scale-area = $!preview-scale-w * $!preview-scale-h;
+has Int $!preview-w = preview_scale($!width, $!preview-scale-w);
+has Int $!preview-h = preview_scale($!height, $!preview-scale-h);
 has Str $!preview-string =
     "┌{'─' x $!preview-w}┐\n" ~
     "│{'.' x $!preview-w}│\n" x $!preview-h ~
@@ -118,7 +121,7 @@ method write () {
     $fh.close;
 }
 
-method set (NNInt $x, NNInt $y, $r, $g, $b) {
+method set (Int $x, Int $y, $r, $g, $b) {
     die "($x, $y) is outside of (0..{$!width-1}, 0..{$!height-1})"
         unless $x < $!width && $y < $!height;
 
