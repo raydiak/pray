@@ -3,6 +3,41 @@
     "version"       : "*",
     "description"   : "Perl 6 Ray Tracing Engine",
     "author"        : "raydiak",
-    "depends"       : [ "JSON::Tiny" ],
+    "build-depends" : [
+        "JSON::Tiny"
+    ],
+    "test-depends" : [
+        "Test"
+    ],
+    "depends" : [
+        "JSON::Tiny"
+    ],
+    "provides" : {
+        "Pray::Input::JSON" : "lib/Pray/Input/JSON.pm6",
+        "Pray::Scene::Color" : "lib/Pray/Output/PPM.pm6",
+        "Pray::Geometry::Matrix3D" : "lib/Pray/Geometry/Cylinder.pm6",
+        "Pray::Geometry::Vector3D" : "lib/Pray/Geometry/Cylinder.pm6",
+        "Pray::Geometry::Ray" : "lib/Pray/Geometry/Cylinder.pm6",
+        "Pray::Geometry::Object" : "lib/Pray/Geometry/Cylinder.pm6",
+        "Pray::Scene::Lighting" : "lib/Pray/Scene/Light.pm6",
+        "Pray::Scene::Ambiance" : "lib/Pray/Scene/Light.pm6",
+        "Pray::Scene::Diffusion" : "lib/Pray/Scene/Light.pm6",
+        "Pray::Scene::Specularity" : "lib/Pray/Scene/Light.pm6",
+        "Pray::Scene::Reflection" : "lib/Pray/Scene/Light.pm6",
+        "Pray::Scene::Transparency" : "lib/Pray/Scene/Light.pm6",
+        "Pray::Scene::Material" : "lib/Pray/Scene/Light.pm6",
+        "Pray::Scene::Object" : "lib/Pray/Scene/Light.pm6",
+        "Pray::Scene::Intersection" : "lib/Pray/Scene/Light.pm6",
+        "Pray::Scene::Light" : "lib/Pray/Scene/Light.pm6",
+        "Pray::Scene::Camera" : "lib/Pray/Scene/Camera.pm6",
+        "Pray::Scene" : "lib/Pray/Scene.pm6",
+        "Pray::Output" : "lib/Pray/Output.pm6",
+        "Pray" : "lib/Pray.pm6",
+        "Pray::Output::PPM" : "lib/Pray/Output/PPM.pm6",
+        "Pray::Geometry::Cube" : "lib/Pray/Geometry/Cube.pm6",
+        "Pray::Geometry::Sphere" : "lib/Pray/Geometry/Sphere.pm6",
+        "Pray::Geometry::Cone" : "lib/Pray/Geometry/Cone.pm6",
+        "Pray::Geometry::Cylinder" : "lib/Pray/Geometry/Cylinder.pm6"
+    },
     "source-url"    : "git://github.com/raydiak/pray.git"
 }
