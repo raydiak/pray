@@ -1,8 +1,8 @@
 ABOUT
 
 This is Pray, a Perl 6 ray tracer. It is tested to work with recent builds of
-Rakudo on the MoarVM backend, though it is likely to work on any modern
-Rakudo. JSON::Tiny is required.
+Rakudo on the MoarVM backend, though it is likely to work on any modern Rakudo.
+Image::PNG::Portable and JSON::Tiny are required.
 
 
 
@@ -11,8 +11,8 @@ INSTALLATION
 The recommended way to install Pray is via panda, by running "panda install
 App::Pray". Pray will also run just fine by simply cloning/extracting it
 anywhere you like, though startup time will be increased if not precompiled
-(e.g. by panda-build), and you will also have to ensure that the JSON::Tiny
-module is installed.
+(e.g. by panda-build), and you will also have to ensure that the
+Image::PNG::Portable and JSON::Tiny modules are installed.
 
 
 
