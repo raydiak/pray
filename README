@@ -18,18 +18,16 @@ module is installed.
 
 USAGE
 
-Input is a JSON scene file, described later. Output is a PPM image file, one of
-the NetPBM formats, readable by many popular image viewers and editors (GIMP
-was used in the course of development).
+Input is a JSON scene file, described later. Output is a 24-bit PNG image file.
 
 Pray is normally invoked as the "pray" script in the bin directory of the
 module, which may also be copied/linked elsewhere like in your path if you
 installed via panda. Two positional arguments are accepted. The first is the
 name of the scene file to read, which defaults to "scene.json". The second is
-the file name of the PPM image to write, and defaults to the file name of the
+the file name of the PNG image to write, and defaults to the file name of the
 scene file (ignoring any directory prefix), with everything after the last
-period replaced by "ppm". If the scene file name is "examples/scene-01.json"
-for instance, then the image file name defaults to "scene-01.ppm" in the
+period replaced by "png". If the scene file name is "examples/scene-01.json"
+for instance, then the image file name defaults to "scene-01.png" in the
 current working directory.
 
 --width
