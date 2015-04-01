@@ -139,8 +139,15 @@ method !set ($x, $y, $r is copy, $g is copy, $b is copy) {
     $g = process $g;
     $b = process $b;
 
-    my $v = [+] $r, $g, $b Z- $!image.get($x, $y)
-        if $!preview;
+    my $v;
+    if $!preview {
+        my @c := $!image.get($x, $y);
+        $v =
+            ($r - @c[0]) +
+            ($g - @c[1]) +
+            ($b - @c[2]);
+    }
+
     $!image.set: $x, $y, $r, $g, $b;
 
     $!count++;
