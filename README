@@ -219,23 +219,23 @@ LIMITATIONS/BUGS/TODO
 
 In no particular order: There is currently no internal reflection, subsurface
 scattering, volumetric lighting, global illumination, caustics, depth of field,
-anti-aliasing, concurrency, or PNG output. Primitive choices are few (missing 4
-of 5 platonic solids, among other things), and only the most basic
-transformations exist, and they are applied as a whole in only one fixed order.
-There is no support for non-solid objects such as planes, polygons, or hollow
-surfaces, nor meshes whether open or closed. No procedural surfaces, textures
-of any kind, bump maps, or things which might be considered "effects" like
-motion blur or particle systems. There's no support for fractals in any way
-shape or form, which is sad. Scene files feel crufty and fragile, and there is
-no way to re-use data in multiple places, forcing the same color to be applied
-for each material lighting type, for instance. Scene files have to be created
-by hand in a text editor. The API is not yet suitable for external use. Various
-naming and calling conventions all over the place are questionable. Performance
-is almost certainly much less than it could be, even given the present state of
-Rakudo. Repeating from above, all sorts of input validation and error checking
-is missing. Documentation is lacking. The web page and whole site are
-uninspiring and a bit internally neglected, considering I advertise myself as a
-web developer.
+anti-aliasing, or concurrency. Primitive choices are few (missing 4 of 5
+platonic solids, among other things), and only the most basic transformations
+exist, and they are applied as a whole in only one fixed order.  There is no
+support for non-solid objects such as planes, polygons, or hollow surfaces, nor
+meshes whether open or closed. No procedural surfaces, textures of any kind,
+bump maps, or things which might be considered "effects" like motion blur or
+particle systems. There's no support for fractals in any way shape or form,
+which is sad. Scene files feel crufty and fragile, and there is no way to
+re-use data in multiple places, forcing the same color to be applied for each
+material lighting type, for instance. Scene files have to be created by hand in
+a text editor. The API is not yet suitable for external use. Various naming and
+calling conventions all over the place are questionable. Performance is almost
+certainly much less than it could be, even given the present state of Rakudo.
+Repeating from above, all sorts of input validation and error checking is
+missing. Documentation is lacking. The web page and whole site are uninspiring
+and a bit internally neglected, considering I advertise myself as a web
+developer.
 
 
 
