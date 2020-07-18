@@ -48,7 +48,7 @@ class Pray::Scene::Specularity is Pray::Scene::Lighting {
         if $specular > 0 {
             if $specular != 1 {
                 $specular **= $!sharpness;
-                return black if $specular ~~ Failure;
+                return black unless $specular;
             }
 
             $specular =
